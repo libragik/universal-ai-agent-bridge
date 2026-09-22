@@ -50,16 +50,17 @@ Google Antigravity Desktop operates as an agent-first workspace without legacy e
 
 ## Key Features
 
-1. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
-2. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
-3. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
-4. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
-5. **Multi-Modal Support**:
+1. **Zero-Downtime Smart Fallback Cascade (Auto 429 / 5xx Recovery)**: Automatically recovers from HTTP 429 rate limits, concurrency exhaustion, or 5xx provider outages. When a target model is overwhelmed, it cascades down your configured sequence (e.g. `dahl` → `groq` → `deepseek` → `ollama`) without interrupting the Antigravity agent loop.
+2. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
+3. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
+4. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
+5. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
+6. **Multi-Modal Support**:
    - Text completions via `/v1/chat/completions`
    - Image generation via `/v1/images/generations` (FLUX.1, DALL-E, SD3)
    - Video generation via `/v1/videos/generations` (LTX-Video, Hailuo, Wan2.1)
-6. **Cross-Model Comparison**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
-7. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
+7. **Cross-Model Comparison**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
+8. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
 
 ---
 

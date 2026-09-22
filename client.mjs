@@ -47,6 +47,7 @@ export class LLMClient {
         const error = new Error(`Provider API error (${response.status}): ${errorMsg}`);
         error.status = response.status;
         error.details = data;
+        error.isRetryable = [429, 500, 502, 503, 504, 408].includes(response.status);
         throw error;
       }
 
@@ -54,8 +55,12 @@ export class LLMClient {
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') {
-        throw new Error(`Request timed out after ${timeoutMs / 1000}s on ${url}`);
+        const timeoutErr = new Error(`Request timed out after ${timeoutMs / 1000}s on ${url}`);
+        timeoutErr.isRetryable = true;
+        timeoutErr.status = 408;
+        throw timeoutErr;
       }
+      err.isRetryable = err.isRetryable ?? ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND'].includes(err.code);
       throw err;
     }
   }

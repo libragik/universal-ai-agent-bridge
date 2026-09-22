@@ -16,6 +16,7 @@ Usage:
   agy-llm test [provider_key]            Test connection & latency to provider
   agy-llm models [provider_key]          Fetch live models list from provider
   agy-llm add <key> <url> [key] [model]  Add or update a provider endpoint
+  agy-llm cascade [set prov1 prov2...]   View or set the automatic failover cascade
   agy-llm ask <prompt>                   Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 
@@ -127,6 +128,22 @@ async function run() {
           console.log(`[Reasoning]\n${res.reasoning}\n`);
         }
         console.log(res.content);
+        break;
+      }
+
+      case 'cascade': {
+        const sub = args[1];
+        if (sub === 'set') {
+          const chain = args.slice(2);
+          if (chain.length === 0) return console.error('Usage: agy-llm cascade set <prov1> <prov2> ...');
+          vault.setFallbackChain(chain);
+          console.log(`✔ Fallback cascade set to: ${chain.join(' -> ')}`);
+        } else {
+          const chain = vault.getFallbackChain();
+          console.log('\n--- Active Fallback Cascade Sequence ---');
+          console.log(chain.map((k, idx) => `  ${idx + 1}. ${k}`).join('\n'));
+          console.log('\nIf the primary provider hits 429 rate limit or 5xx outage, the bridge automatically falls over down this list.');
+        }
         break;
       }
 

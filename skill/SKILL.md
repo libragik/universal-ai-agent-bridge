@@ -29,6 +29,8 @@ Send prompts to any provider or ad-hoc endpoint:
 - **`model`**: Model name (e.g., `MiniMaxAI/MiniMax-M2.7`, `deepseek-chat`, `llama-3.3-70b-versatile`)
 - **`provider`**: Saved alias (`dahl`, `openrouter`, `groq`, `ollama`, etc.)
 - **`endpoint_url`** & **`api_key`**: Directly query any arbitrary `/v1` URL on-the-fly
+- **`fallback`**: (Default `true`) Zero-downtime failover cascade upon encountering HTTP 429 (rate/concurrency limit) or 5xx outage
+- **`fallback_chain`**: Custom sequence of provider keys to attempt (e.g., `["dahl", "groq", "deepseek", "ollama"]`)
 
 ### 2. `llm_list_models`
 Discover available models by calling `GET /v1/models` on any endpoint.

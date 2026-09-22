@@ -13,12 +13,14 @@ const LOCAL_CONFIG_PATH = path.join(process.cwd(), 'llm_providers.json');
 
 const DEFAULT_CONFIG = {
   active_provider: 'dahl',
+  fallback_cascade: ['dahl', 'groq', 'deepseek', 'openrouter', 'ollama'],
   providers: {
     dahl: {
       name: 'Dahl Inference Cluster',
       base_url: 'https://inference.dahl.global/v1',
       api_key: '',
       default_model: 'MiniMaxAI/MiniMax-M2.7',
+      fallback_models: ['MiniMaxAI/MiniMax-M2.7', 'zai-org/GLM-5.3-Flash', 'deepseek-ai/DeepSeek-V4-Flash-0731'],
       models: [
         'MiniMaxAI/MiniMax-M2.7',
         'deepseek-ai/DeepSeek-V4-Flash-0731',
@@ -224,5 +226,32 @@ export class ProviderVault {
       return true;
     }
     return false;
+  }
+
+  getFallbackChain(primaryKey = null) {
+    const config = this.load();
+    const globalCascade = config.fallback_cascade || ['dahl', 'groq', 'deepseek', 'openrouter', 'ollama'];
+    const active = primaryKey || config.active_provider || globalCascade[0];
+    
+    const unique = [active];
+    for (const key of globalCascade) {
+      if (!unique.includes(key) && config.providers?.[key]) {
+        // Only include if provider has api_key configured OR is local (ollama/lmstudio)
+        const p = config.providers[key];
+        const isLocal = p.base_url.includes('localhost') || p.base_url.includes('127.0.0.1');
+        if (p.api_key?.trim() || isLocal) {
+          unique.push(key);
+        }
+      }
+    }
+    return unique;
+  }
+
+  setFallbackChain(chain) {
+    if (!Array.isArray(chain)) throw new Error('Fallback chain must be an array of provider keys');
+    const config = this.load();
+    config.fallback_cascade = chain;
+    this.save(config);
+    return config.fallback_cascade;
   }
 }

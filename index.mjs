@@ -43,6 +43,15 @@ const TOOLS = [
         max_tokens: {
           type: 'number',
           description: 'Maximum tokens to generate.'
+        },
+        fallback: {
+          type: 'boolean',
+          description: 'Enable smart zero-downtime fallback cascade if the primary provider returns HTTP 429 (rate limit) or 5xx error. Default is true.'
+        },
+        fallback_chain: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Custom array of provider keys to try in sequence if primary fails (e.g. ["dahl", "groq", "deepseek", "ollama"]).'
         }
       },
       required: ['prompt']
@@ -98,8 +107,13 @@ const TOOLS = [
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'get_active', 'set_active', 'add_or_update', 'remove'],
+          enum: ['list', 'get_active', 'set_active', 'add_or_update', 'remove', 'get_fallback_cascade', 'set_fallback_cascade'],
           description: 'Action to perform on the vault.'
+        },
+        fallback_cascade: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of provider keys to set as the fallback cascade sequence.'
         },
         provider_key: {
           type: 'string',
@@ -233,43 +247,121 @@ const TOOLS = [
 async function handleToolCall(name, args) {
   switch (name) {
     case 'llm_query': {
-      const resolved = vault.resolveProvider({
-        providerKey: args.provider,
-        endpointUrl: args.endpoint_url,
-        apiKey: args.api_key,
-        model: args.model
-      });
-
       const messages = [];
       if (args.system_prompt) {
         messages.push({ role: 'system', content: args.system_prompt });
       }
       messages.push({ role: 'user', content: args.prompt });
 
-      const targetModel = args.model || resolved.default_model;
-      if (!targetModel) {
-        throw new Error(`No model specified and provider "${resolved.key}" has no default model configured.`);
+      // Build the candidate sequence:
+      // If ad-hoc endpoint_url is passed without custom chain, try it directly
+      if (args.endpoint_url && !args.fallback_chain) {
+        const resolved = vault.resolveProvider({
+          endpointUrl: args.endpoint_url,
+          apiKey: args.api_key,
+          model: args.model
+        });
+
+        const result = await LLMClient.chatCompletion({
+          baseUrl: resolved.base_url,
+          apiKey: resolved.api_key,
+          model: args.model || resolved.default_model,
+          messages,
+          temperature: args.temperature ?? 0.7,
+          maxTokens: args.max_tokens ?? null,
+          customHeaders: resolved.headers || {}
+        });
+
+        return {
+          provider_used: 'Ad-hoc Endpoint',
+          base_url: resolved.base_url,
+          model: result.model,
+          latency: `${result.latency_ms}ms`,
+          reasoning: result.reasoning || null,
+          content: result.content,
+          usage: result.usage
+        };
       }
 
-      const result = await LLMClient.chatCompletion({
-        baseUrl: resolved.base_url,
-        apiKey: resolved.api_key,
-        model: targetModel,
-        messages,
-        temperature: args.temperature ?? 0.7,
-        maxTokens: args.max_tokens ?? null,
-        customHeaders: resolved.headers || {}
-      });
+      // Smart Fallback Cascade
+      const fallbackEnabled = args.fallback !== false;
+      const chain = args.fallback_chain || vault.getFallbackChain(args.provider);
+      const candidatesToTry = fallbackEnabled ? chain : [chain[0]];
 
-      return {
-        provider_used: resolved.name || resolved.key,
-        base_url: resolved.base_url,
-        model: result.model,
-        latency: `${result.latency_ms}ms`,
-        reasoning: result.reasoning || null,
-        content: result.content,
-        usage: result.usage
-      };
+      const fallbackHistory = [];
+      let lastError = null;
+
+      for (let i = 0; i < candidatesToTry.length; i++) {
+        const providerKey = candidatesToTry[i];
+        let resolved;
+        try {
+          resolved = vault.resolveProvider({
+            providerKey,
+            apiKey: i === 0 ? args.api_key : null,
+            model: i === 0 ? args.model : null
+          });
+        } catch (resolveErr) {
+          continue;
+        }
+
+        // Models to attempt on this provider
+        const modelsToTry = [];
+        const preferredModel = (i === 0 && args.model) ? args.model : resolved.default_model;
+        if (preferredModel) modelsToTry.push(preferredModel);
+
+        // If provider specifies fallback models or has a model list, append them
+        const alternateModels = Array.isArray(resolved.fallback_models)
+          ? resolved.fallback_models
+          : Array.isArray(resolved.models)
+          ? resolved.models
+          : [];
+        for (const m of alternateModels) {
+          if (!modelsToTry.includes(m)) modelsToTry.push(m);
+        }
+
+        for (const modelAttempt of modelsToTry) {
+          try {
+            const result = await LLMClient.chatCompletion({
+              baseUrl: resolved.base_url,
+              apiKey: resolved.api_key,
+              model: modelAttempt,
+              messages,
+              temperature: args.temperature ?? 0.7,
+              maxTokens: args.max_tokens ?? null,
+              customHeaders: resolved.headers || {}
+            });
+
+            return {
+              provider_used: resolved.name || resolved.key,
+              base_url: resolved.base_url,
+              model: result.model,
+              latency: `${result.latency_ms}ms`,
+              reasoning: result.reasoning || null,
+              content: result.content,
+              usage: result.usage,
+              fallback_occurred: fallbackHistory.length > 0,
+              ...(fallbackHistory.length > 0 ? { fallback_history: fallbackHistory } : {})
+            };
+          } catch (attemptErr) {
+            fallbackHistory.push({
+              provider: resolved.key,
+              model: modelAttempt,
+              status: attemptErr.status || 'network_error',
+              error: attemptErr.message
+            });
+            lastError = attemptErr;
+
+            if (!fallbackEnabled || (!attemptErr.isRetryable && attemptErr.status === 401)) {
+              throw attemptErr;
+            }
+          }
+        }
+      }
+
+      throw new Error(
+        `All candidates in fallback cascade failed (${candidatesToTry.join(' -> ')}):\n` +
+        fallbackHistory.map(h => `  [${h.provider} (${h.model})]: ${h.error}`).join('\n')
+      );
     }
 
     case 'llm_list_models': {
@@ -363,14 +455,22 @@ async function handleToolCall(name, args) {
         };
       }
 
-      if (action === 'remove') {
-        if (!args.provider_key) throw new Error('provider_key is required');
-        const removed = vault.removeProvider(args.provider_key);
+      if (action === 'get_fallback_cascade') {
+        const cascade = vault.getFallbackChain();
         return {
-          success: removed,
-          message: removed
-            ? `Provider "${args.provider_key}" was removed.`
-            : `Provider "${args.provider_key}" not found.`
+          fallback_cascade: cascade,
+          description: 'Automatic failover sequence when a provider encounters HTTP 429 rate limit or 5xx server downtime.'
+        };
+      }
+
+      if (action === 'set_fallback_cascade') {
+        if (!Array.isArray(args.fallback_cascade)) {
+          throw new Error('fallback_cascade must be an array of provider keys');
+        }
+        const updated = vault.setFallbackChain(args.fallback_cascade);
+        return {
+          message: 'Fallback cascade updated successfully.',
+          fallback_cascade: updated
         };
       }
 
