@@ -1,0 +1,34 @@
+{
+  "name": "antigravity-universal-llm-bridge",
+  "version": "1.0.0",
+  "description": "Universal OpenAI-compatible /v1 Gateway MCP Server and Skill for Google Antigravity Desktop",
+  "main": "index.mjs",
+  "type": "module",
+  "bin": {
+    "agy-llm": "./cli.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node cli.mjs list"
+  },
+  "keywords": [
+    "antigravity",
+    "mcp",
+    "mcp-server",
+    "openai-compatible",
+    "v1",
+    "llm-gateway",
+    "openrouter",
+    "deepseek",
+    "groq",
+    "ollama",
+    "freellmapi",
+    "9router",
+    "dahl"
+  ],
+  "author": "Antigravity Engineering Community",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

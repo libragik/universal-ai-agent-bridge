@@ -1,0 +1,36 @@
+{
+  "name": "llm_generate_video",
+  "description": "Generate a video using an external /v1 endpoint that supports video generation (e.g., SiliconFlow LTX-Video, Together, MiniMax Hailuo Video, or custom video bridge).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "Detailed description of the video to generate."
+      },
+      "model": {
+        "type": "string",
+        "description": "Video model name (e.g., 'Lightricks/LTX-Video', 'kling', 'cogvideox')."
+      },
+      "provider": {
+        "type": "string",
+        "description": "Provider alias from vault."
+      },
+      "endpoint_url": {
+        "type": "string",
+        "description": "Ad-hoc /v1 base URL supporting /v1/videos/generations."
+      },
+      "api_key": {
+        "type": "string",
+        "description": "API key for authentication."
+      },
+      "duration": {
+        "type": "number",
+        "description": "Duration in seconds (e.g. 5)."
+      }
+    },
+    "required": [
+      "prompt"
+    ]
+  }
+}

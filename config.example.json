@@ -1,0 +1,71 @@
+{
+  "active_provider": "dahl",
+  "providers": {
+    "dahl": {
+      "name": "Dahl Inference Cluster",
+      "base_url": "https://inference.dahl.global/v1",
+      "api_key": "YOUR_DAHL_API_KEY",
+      "default_model": "MiniMaxAI/MiniMax-M2.7",
+      "models": [
+        "MiniMaxAI/MiniMax-M2.7",
+        "deepseek-ai/DeepSeek-V4-Flash-0731",
+        "zai-org/GLM-5.3-Flash"
+      ],
+      "description": "Dahl high-throughput vLLM cluster with MiniMax and DeepSeek"
+    },
+    "openrouter": {
+      "name": "OpenRouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key": "YOUR_OPENROUTER_KEY",
+      "default_model": "deepseek/deepseek-r1",
+      "models": [
+        "anthropic/claude-3.7-sonnet",
+        "deepseek/deepseek-r1",
+        "meta-llama/llama-3.3-70b-instruct"
+      ]
+    },
+    "deepseek": {
+      "name": "DeepSeek Official API",
+      "base_url": "https://api.deepseek.com/v1",
+      "api_key": "YOUR_DEEPSEEK_KEY",
+      "default_model": "deepseek-chat"
+    },
+    "groq": {
+      "name": "Groq Cloud (Ultra-Fast LPU)",
+      "base_url": "https://api.groq.com/openai/v1",
+      "api_key": "YOUR_GROQ_KEY",
+      "default_model": "llama-3.3-70b-versatile"
+    },
+    "siliconflow": {
+      "name": "SiliconFlow Multi-Modal",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "api_key": "YOUR_SILICONFLOW_KEY",
+      "default_model": "deepseek-ai/DeepSeek-V3",
+      "description": "Supports text, FLUX image, and LTX video generation"
+    },
+    "ollama": {
+      "name": "Ollama Local Instance",
+      "base_url": "http://localhost:11434/v1",
+      "api_key": "ollama",
+      "default_model": "qwen2.5-coder:latest"
+    },
+    "lmstudio": {
+      "name": "LM Studio Local Server",
+      "base_url": "http://localhost:1234/v1",
+      "api_key": "lmstudio",
+      "default_model": "local-model"
+    },
+    "freellmapi": {
+      "name": "FreeLLMAPI Aggregator",
+      "base_url": "http://localhost:4000/v1",
+      "api_key": "freellmapi",
+      "default_model": "auto"
+    },
+    "9router": {
+      "name": "9Router Cascade",
+      "base_url": "http://localhost:20128/v1",
+      "api_key": "9router",
+      "default_model": "auto"
+    }
+  }
+}

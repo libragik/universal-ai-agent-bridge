@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Local secrets & credentials
+llm_providers.json
+.env
+.env.*
+*.key
+*.pem
+
+# Runtime & Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated media
+generated_images/
+generated_videos/
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
