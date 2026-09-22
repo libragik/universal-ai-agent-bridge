@@ -4,8 +4,10 @@ import { ProviderVault } from './provider-vault.mjs';
 import { LLMClient } from './client.mjs';
 import { LocalScanner } from './scanner.mjs';
 import { PromptCompressor } from './compressor.mjs';
+import { CouncilEngine } from './council.mjs';
 
 const vault = new ProviderVault();
+const councilEngine = new CouncilEngine(vault);
 
 const TOOLS = [
   {
@@ -282,6 +284,58 @@ const TOOLS = [
         }
       },
       required: ['text']
+    }
+  },
+  {
+    name: 'llm_council',
+    description: 'Multi-Model Consensus & Council Deliberation. Broadcasts a complex problem, code architecture, or security audit in parallel to multiple LLM council members (e.g. Dahl, DeepSeek, Groq, Ollama), then automatically uses a designated Chief Justice / Synthesizer model to critique, cross-examine, and deliver the single optimal consensus solution.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'The complex task, technical dilemma, code bug, or architectural question for council deliberation.'
+        },
+        system_prompt: {
+          type: 'string',
+          description: 'Optional system prompt applied to all council member models.'
+        },
+        members: {
+          type: 'array',
+          description: 'List of council member models/providers. Defaults to active provider + fallback chain if omitted.',
+          items: {
+            type: 'object',
+            properties: {
+              provider: { type: 'string', description: "Provider alias from vault (e.g. 'dahl', 'groq', 'ollama')." },
+              model: { type: 'string', description: 'Model ID to query for this member.' },
+              name: { type: 'string', description: "Custom label (e.g. 'Security Auditor', 'Rust Expert')." },
+              role_description: { type: 'string', description: 'Domain specialty description.' },
+              endpoint_url: { type: 'string', description: 'Ad-hoc /v1 URL.' },
+              api_key: { type: 'string', description: 'Ad-hoc API key.' }
+            }
+          }
+        },
+        judge: {
+          type: 'object',
+          description: 'Chief Justice / Synthesizer configuration. Defaults to active default model.',
+          properties: {
+            provider: { type: 'string', description: 'Provider alias from vault for the judge.' },
+            model: { type: 'string', description: 'Model ID for synthesis.' },
+            name: { type: 'string', description: 'Display name of judge.' },
+            endpoint_url: { type: 'string' },
+            api_key: { type: 'string' }
+          }
+        },
+        synthesis_instruction: {
+          type: 'string',
+          description: "Custom adjudication instructions for the Chief Justice (e.g. 'Focus on lowest latency and minimal memory footprint')."
+        },
+        temperature: {
+          type: 'number',
+          description: 'Sampling temperature for member generation (default 0.7).'
+        }
+      },
+      required: ['prompt']
     }
   }
 ];
@@ -685,6 +739,17 @@ async function handleToolCall(name, args) {
         savings_percent: res.savings_percent,
         compressed_text: res.compressed
       };
+    }
+
+    case 'llm_council': {
+      return await councilEngine.deliberate({
+        prompt: args.prompt,
+        system_prompt: args.system_prompt,
+        members: args.members,
+        judge: args.judge,
+        temperature: args.temperature,
+        synthesis_instruction: args.synthesis_instruction
+      });
     }
 
     default:

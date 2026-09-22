@@ -51,6 +51,13 @@ Auto-scans local ports (`11434`, `1234`, `20128`, `4000`, `8000`, `8080`, `1337`
 ### 7. `llm_compress_prompt`
 Standalone text compressor tool. Returns compressed text alongside exact token savings and percentage reduction.
 
+### 8. `llm_council`
+Multi-Model Consensus & Council Deliberation. Broadcasts a complex prompt, code architecture dilemma, or security audit in parallel to multiple LLM council members (e.g. Dahl, DeepSeek, Groq, Ollama), then automatically uses a designated Chief Justice / Synthesizer model to critique, cross-examine, and deliver the single optimal consensus solution.
+- **`prompt`**: The complex task, code review, or dilemma
+- **`members`**: Array of member providers/models with custom roles (defaults to active provider + fallback chain)
+- **`judge`**: Synthesizer model (defaults to active default model)
+- **`synthesis_instruction`**: Optional custom instructions for the Chief Justice verdict
+
 ---
 
 ## Terminal CLI Management: `agy-llm`

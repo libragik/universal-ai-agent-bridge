@@ -157,6 +157,11 @@ export class ProviderVault {
     return config.providers || {};
   }
 
+  getProvider(key) {
+    const config = this.load();
+    return config.providers?.[key] || null;
+  }
+
   getActiveProvider() {
     const config = this.load();
     const activeKey = config.active_provider || Object.keys(config.providers || {})[0] || 'dahl';

@@ -53,16 +53,17 @@ Google Antigravity Desktop operates as an agent-first workspace without legacy e
 1. **Zero-Downtime Smart Fallback Cascade (Auto 429 / 5xx Recovery)**: Automatically recovers from HTTP 429 rate limits, concurrency exhaustion, or 5xx provider outages. When a target model is overwhelmed, it cascades down your configured sequence (e.g. `dahl` → `groq` → `deepseek` → `ollama`) without interrupting the Antigravity agent loop.
 2. **Auto-Discovery Port Scanner (Zero-Config Local AI)**: Automatically probes ports `11434` (Ollama), `1234` (LM Studio), `20128` (9Router/OmniRoute), `4000` (FreeLLMAPI), `8000` (vLLM), `8080` (LocalAI), and `1337` (Jan). Detects active services in under 100ms, lists their loaded models, and auto-populates them into your Antigravity vault.
 3. **Smart Prompt Compression (RTK Token-Saver)**: Heuristic compression engine that deduplicates repeated log polling lines, truncates deep library stack frames (e.g. node_modules chains), and normalizes whitespace while strictly preserving code indentation and semantics. Slashes input token consumption by 20% to 50%.
-4. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
-5. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
-6. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
-7. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
-8. **Multi-Modal Support**:
+4. **Multi-Model Consensus & Council Deliberation (`llm_council`)**: Queries multiple specialized models simultaneously (e.g., DeepSeek for mathematical logic, Claude/MiniMax for instruction following, Ollama for local verification) and dispatches all perspectives to a Chief Justice / Synthesizer model that cross-examines the candidate answers, catches edge bugs, and synthesizes the single definitive consensus verdict.
+5. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
+6. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
+7. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
+8. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
+9. **Multi-Modal Support**:
    - Text completions via `/v1/chat/completions`
    - Image generation via `/v1/images/generations` (FLUX.1, DALL-E, SD3)
    - Video generation via `/v1/videos/generations` (LTX-Video, Hailuo, Wan2.1)
-9. **Cross-Model Comparison**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
-10. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
+10. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
+11. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
 
 ---
 
@@ -150,14 +151,25 @@ Generates images using standard `/v1/images/generations` endpoints (SiliconFlow 
 ### 7. `llm_generate_video`
 Generates videos via `/v1/videos/generations` endpoints (LTX-Video, Hailuo, etc.).
 
+### 8. `llm_autodetect`
+Scans local ports (`11434`, `1234`, `20128`, `4000`, `8000`, `8080`, `1337`) for active local AI engines (Ollama, LM Studio, 9Router, FreeLLMAPI, vLLM, Jan) and synchronizes them directly into the provider vault.
+
+### 9. `llm_compress_prompt`
+Standalone RTK prompt compressor that cuts redundant whitespace, poll loops, and deep library frames while preserving code structure.
+
+### 10. `llm_council`
+Multi-Model Consensus deliberation. Queries multiple models/providers in parallel and runs an automated Chief Justice cross-examination to synthesize the single optimal consensus solution.
+
 ---
 
 ## Example Antigravity Chat Prompts
 
 You can speak naturally to Antigravity:
+- *"Convene an AI council to debate whether we should use Redis or PostgreSQL for background jobs."*
 - *"Use Dahl to check if there are edge cases in this sorting function."*
 - *"Run `llm_test_connection` on my Groq endpoint."*
 - *"Compare this SQL query optimization between DeepSeek-V3 and MiniMax-M2.7."*
+- *"Scan for local running LLMs and add them to my vault."*
 - *"List all models currently online on Dahl."*
 
 ---
@@ -172,7 +184,11 @@ Usage:
   agy-llm test [provider_key]            Test connection & latency to provider
   agy-llm models [provider_key]          Fetch live models list from provider
   agy-llm add <key> <url> [key] [model]  Add or update a provider endpoint
-  agy-llm ask <prompt>                   Quick test query using active provider
+  agy-llm cascade [set prov1 prov2...]   View or set the automatic failover cascade
+  agy-llm scan                           Auto-scan local ports for running AI engines
+  agy-llm compress <text>                Compress prompt text and preview token savings
+  agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
+  agy-llm ask [--compress] <prompt>      Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 ```
 

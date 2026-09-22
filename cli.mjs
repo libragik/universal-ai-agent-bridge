@@ -3,6 +3,7 @@ import { ProviderVault } from './provider-vault.mjs';
 import { LLMClient } from './client.mjs';
 import { LocalScanner } from './scanner.mjs';
 import { PromptCompressor } from './compressor.mjs';
+import { CouncilEngine } from './council.mjs';
 
 const vault = new ProviderVault();
 const args = process.argv.slice(2);
@@ -21,12 +22,14 @@ Usage:
   agy-llm cascade [set prov1 prov2...]   View or set the automatic failover cascade
   agy-llm scan                           Auto-scan local ports for running AI engines
   agy-llm compress <text>                Compress prompt text and preview token savings
+  agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
   agy-llm ask [--compress] <prompt>      Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 
 Examples:
   agy-llm list
   agy-llm test dahl
+  agy-llm council "Should I use Redis or PostgreSQL for background queues?"
   agy-llm models dahl
   agy-llm add my_local http://localhost:11434/v1 ollama qwen2.5-coder:latest
   agy-llm ask "What is the fastest sorting algorithm in python?"
@@ -198,6 +201,76 @@ async function run() {
           const synced = LocalScanner.syncWithVault(vault, scan);
           console.log(`\n✔ Automatically synced ${synced.length} service(s) into your Antigravity provider vault.`);
         }
+        break;
+      }
+
+      case 'council': {
+        let promptArgs = args.slice(1);
+        let membersArg = null;
+        let judgeArg = null;
+        let customMembers = [];
+
+        for (let i = 0; i < promptArgs.length; i++) {
+          if (promptArgs[i] === '--members' && promptArgs[i + 1]) {
+            membersArg = promptArgs[i + 1];
+            promptArgs.splice(i, 2);
+            i--;
+          } else if (promptArgs[i] === '--judge' && promptArgs[i + 1]) {
+            judgeArg = promptArgs[i + 1];
+            promptArgs.splice(i, 2);
+            i--;
+          }
+        }
+
+        const prompt = promptArgs.join(' ');
+        if (!prompt) {
+          return console.error('Please provide a prompt for council deliberation. Example: agy-llm council "Should I use Redis or PostgreSQL for background queues?"');
+        }
+
+        if (membersArg) {
+          customMembers = membersArg.split(',').map((m, idx) => {
+            const [p, ...rest] = m.trim().split(':');
+            return {
+              provider: p,
+              model: rest.join(':') || undefined,
+              role_description: `Deliberating Member #${idx + 1}`
+            };
+          });
+        }
+
+        let customJudge = null;
+        if (judgeArg) {
+          const [p, ...rest] = judgeArg.trim().split(':');
+          customJudge = { provider: p, model: rest.join(':') || undefined };
+        }
+
+        const councilEngine = new CouncilEngine(vault);
+        console.log('\n🏛️  Initiating Multi-Model AI Council Deliberation...');
+        console.log(`Prompt: "${prompt.slice(0, 80)}${prompt.length > 80 ? '...' : ''}"\n`);
+
+        const deliberation = await councilEngine.deliberate({
+          prompt,
+          members: customMembers,
+          judge: customJudge
+        });
+
+        console.log('--- 📋 Council Members Feedback ---');
+        for (const m of deliberation.council_members) {
+          const icon = m.status === 'success' ? '✔' : '✖';
+          console.log(`\n${icon} [${m.member}] (${m.latency_ms}ms):`);
+          if (m.status === 'success') {
+            const preview = m.content.length > 350 ? m.content.slice(0, 350) + '...\n[truncated for CLI preview]' : m.content;
+            console.log(preview);
+          } else {
+            console.log(`Error: ${m.error}`);
+          }
+        }
+
+        console.log('\n======================================================');
+        console.log(`⚖️  CHIEF JUSTICE CONSENSUS VERDICT [${deliberation.judge.name}]`);
+        console.log('======================================================\n');
+        console.log(deliberation.consensus);
+        console.log(`\n✔ Council Deliberation complete in ${(deliberation.summary.total_latency_ms / 1000).toFixed(2)}s (${deliberation.summary.successful_members}/${deliberation.summary.total_members} members contributed).`);
         break;
       }
 
