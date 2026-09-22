@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { ProviderVault } from './provider-vault.mjs';
 import { LLMClient } from './client.mjs';
+import { LocalScanner } from './scanner.mjs';
 
 const vault = new ProviderVault();
 const args = process.argv.slice(2);
@@ -17,6 +18,7 @@ Usage:
   agy-llm models [provider_key]          Fetch live models list from provider
   agy-llm add <key> <url> [key] [model]  Add or update a provider endpoint
   agy-llm cascade [set prov1 prov2...]   View or set the automatic failover cascade
+  agy-llm scan                           Auto-scan local ports for running AI engines
   agy-llm ask <prompt>                   Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 
@@ -143,6 +145,28 @@ async function run() {
           console.log('\n--- Active Fallback Cascade Sequence ---');
           console.log(chain.map((k, idx) => `  ${idx + 1}. ${k}`).join('\n'));
           console.log('\nIf the primary provider hits 429 rate limit or 5xx outage, the bridge automatically falls over down this list.');
+        }
+        break;
+      }
+
+      case 'scan': {
+        console.log('\nScanning local network ports for active AI services...');
+        console.log('Probing ports: 11434 (Ollama), 1234 (LM Studio), 20128 (9Router/OmniRoute), 4000 (FreeLLMAPI), 8000 (vLLM), 8080 (LocalAI), 1337 (Jan)...');
+        
+        const scan = await LocalScanner.scanAll();
+        console.log(`\nScan Complete: ${scan.online_count} online service(s) found across ${scan.total_scanned} probed endpoints.\n`);
+        
+        if (scan.online_count === 0) {
+          console.log('✖ No local AI services currently running.');
+          console.log('  Tip: Start Ollama (`ollama serve`), LM Studio, 9Router, or FreeLLMAPI and re-run `agy-llm scan`.');
+        } else {
+          for (const s of scan.online_services) {
+            console.log(`✔ [ONLINE] ${s.name} (${s.latency_ms}ms)`);
+            console.log(`    Base URL: ${s.baseUrl}`);
+            console.log(`    Models (${s.models_count}): ${s.models.slice(0, 5).join(', ')}${s.models_count > 5 ? '...' : ''}`);
+          }
+          const synced = LocalScanner.syncWithVault(vault, scan);
+          console.log(`\n✔ Automatically synced ${synced.length} service(s) into your Antigravity provider vault.`);
         }
         break;
       }

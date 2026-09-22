@@ -2,6 +2,7 @@
 import readline from 'node:readline';
 import { ProviderVault } from './provider-vault.mjs';
 import { LLMClient } from './client.mjs';
+import { LocalScanner } from './scanner.mjs';
 
 const vault = new ProviderVault();
 
@@ -240,6 +241,28 @@ const TOOLS = [
         }
       },
       required: ['prompt']
+    }
+  },
+  {
+    name: 'llm_autodetect',
+    description: 'Auto-scan local network ports for running AI servers (Ollama on 11434, LM Studio on 1234, 9Router/OmniRoute on 20128, FreeLLMAPI on 4000, vLLM on 8000, LocalAI on 8080, Jan on 1337). Detects online engines, lists their active models, and automatically syncs them into your Antigravity vault.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        auto_sync: {
+          type: 'boolean',
+          description: 'If true (default), automatically adds/updates discovered local engines into your provider vault.'
+        },
+        custom_ports: {
+          type: 'array',
+          items: { type: 'integer' },
+          description: 'Optional additional local ports to probe (e.g. [8001, 9000]).'
+        },
+        timeout_ms: {
+          type: 'integer',
+          description: 'Timeout in milliseconds per probe (default 1200).'
+        }
+      }
     }
   }
 ];
@@ -586,6 +609,28 @@ async function handleToolCall(name, args) {
         task_id: result.task_id,
         status: result.status,
         latency: `${result.latency_ms}ms`
+      };
+    }
+
+    case 'llm_autodetect': {
+      const scan = await LocalScanner.scanAll({
+        timeoutMs: args.timeout_ms || 1200,
+        customPorts: args.custom_ports || []
+      });
+
+      let synced = [];
+      if (args.auto_sync !== false && scan.online_count > 0) {
+        synced = LocalScanner.syncWithVault(vault, scan);
+      }
+
+      return {
+        message: scan.online_count > 0
+          ? `Discovered ${scan.online_count} online local AI service(s).`
+          : 'No local AI services currently detected on standard ports (11434, 1234, 20128, 4000, 8000, 8080, 1337, 5000).',
+        online_count: scan.online_count,
+        online_services: scan.online_services,
+        vault_synced: synced,
+        total_scanned: scan.total_scanned
       };
     }
 

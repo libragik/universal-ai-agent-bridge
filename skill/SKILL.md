@@ -44,6 +44,9 @@ Add new endpoints, update credentials, list configured vaults, or switch default
 ### 5. `llm_compare`
 Run an identical prompt across multiple endpoints or models concurrently to compare output quality, latency, and reasoning traces.
 
+### 6. `llm_autodetect`
+Auto-scans local ports (`11434`, `1234`, `20128`, `4000`, `8000`, `8080`, `1337`) for running AI servers (Ollama, LM Studio, 9Router, FreeLLMAPI, vLLM, Jan, LocalAI), pulls all live loaded models, and auto-syncs them into the vault.
+
 ---
 
 ## Terminal CLI Management: `agy-llm`

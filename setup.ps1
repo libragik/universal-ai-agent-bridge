@@ -31,6 +31,7 @@ Write-Host "[*] Deploying server runtime files to $serverInstallDir..." -Foregro
 Copy-Item (Join-Path $scriptDir "index.mjs") $serverInstallDir -Force
 Copy-Item (Join-Path $scriptDir "client.mjs") $serverInstallDir -Force
 Copy-Item (Join-Path $scriptDir "provider-vault.mjs") $serverInstallDir -Force
+Copy-Item (Join-Path $scriptDir "scanner.mjs") $serverInstallDir -Force
 Copy-Item (Join-Path $scriptDir "cli.mjs") $serverInstallDir -Force
 Copy-Item (Join-Path $scriptDir "package.json") $serverInstallDir -Force
 

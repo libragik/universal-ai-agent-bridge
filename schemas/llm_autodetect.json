@@ -1,0 +1,24 @@
+{
+  "name": "llm_autodetect",
+  "description": "Auto-scan local network ports for running AI servers (Ollama on 11434, LM Studio on 1234, 9Router/OmniRoute on 20128, FreeLLMAPI on 4000, vLLM on 8000, LocalAI on 8080, Jan on 1337). Detects online engines, lists their active models, and automatically syncs them into your Antigravity vault.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "auto_sync": {
+        "type": "boolean",
+        "description": "If true (default), automatically adds/updates discovered local engines into your provider vault."
+      },
+      "custom_ports": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Optional additional local ports to probe (e.g. [8001, 9000])."
+      },
+      "timeout_ms": {
+        "type": "integer",
+        "description": "Timeout in milliseconds per probe (default 1200)."
+      }
+    }
+  }
+}
