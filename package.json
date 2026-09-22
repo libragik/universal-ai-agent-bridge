@@ -1,27 +1,56 @@
 {
-  "name": "antigravity-universal-llm-bridge",
+  "name": "universal-ai-agent-bridge",
   "version": "1.0.0",
-  "description": "Universal OpenAI-compatible /v1 Gateway MCP Server and Skill for Google Antigravity Desktop",
+  "description": "Universal AI Agent Bridge (UAAB) - One bridge. Every AI agent. Enterprise-grade MCP server connecting Claude Code, Codex, Cursor, Gemini, Antigravity, and all AI agents to ANY OpenAI-compatible /v1 endpoint.",
   "main": "index.mjs",
   "type": "module",
   "bin": {
+    "uaab": "./cli.mjs",
     "agy-llm": "./cli.mjs"
   },
   "scripts": {
     "start": "node index.mjs",
-    "test": "node cli.mjs list"
+    "test": "node cli.mjs list",
+    "scan": "node cli.mjs scan",
+    "active": "node cli.mjs active"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libragik/universal-llm-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/libragik/universal-llm-bridge/issues"
+  },
+  "homepage": "https://github.com/libragik/universal-llm-bridge#readme",
   "keywords": [
-    "antigravity",
     "mcp",
     "mcp-server",
+    "model-context-protocol",
+    "universal-ai-agent-bridge",
+    "uaab",
+    "ai-agents",
+    "claude-code",
+    "claude-desktop",
+    "cursor",
+    "cursor-ai",
+    "windsurf",
+    "codex",
+    "antigravity",
+    "gemini",
     "openai-compatible",
     "v1",
     "llm-gateway",
-    "openrouter",
+    "llm-proxy",
+    "ai-council",
+    "multi-agent",
+    "prompt-compression",
     "deepseek",
+    "deepseek-r1",
+    "openrouter",
     "groq",
     "ollama",
+    "vllm",
+    "lmstudio",
     "freellmapi",
     "9router",
     "dahl"
