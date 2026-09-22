@@ -3,6 +3,7 @@ import readline from 'node:readline';
 import { ProviderVault } from './provider-vault.mjs';
 import { LLMClient } from './client.mjs';
 import { LocalScanner } from './scanner.mjs';
+import { PromptCompressor } from './compressor.mjs';
 
 const vault = new ProviderVault();
 
@@ -53,6 +54,10 @@ const TOOLS = [
           type: 'array',
           items: { type: 'string' },
           description: 'Custom array of provider keys to try in sequence if primary fails (e.g. ["dahl", "groq", "deepseek", "ollama"]).'
+        },
+        compress_tokens: {
+          type: 'boolean',
+          description: 'Enable RTK Smart Prompt Compression to strip redundant whitespace, duplicate logs, and deep library stack traces, saving 20%-40% on input tokens. Default is false.'
         }
       },
       required: ['prompt']
@@ -264,17 +269,38 @@ const TOOLS = [
         }
       }
     }
+  },
+  {
+    name: 'llm_compress_prompt',
+    description: 'Compress any prompt, code block, log output, or stack trace using RTK Smart Compression to strip redundant whitespace, duplicate lines, and deep library frames while maintaining code semantics. Returns token savings metrics.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: 'The text or code to compress.'
+        }
+      },
+      required: ['text']
+    }
   }
 ];
 
 async function handleToolCall(name, args) {
   switch (name) {
     case 'llm_query': {
-      const messages = [];
+      let messages = [];
       if (args.system_prompt) {
         messages.push({ role: 'system', content: args.system_prompt });
       }
       messages.push({ role: 'user', content: args.prompt });
+
+      let compressionStats = null;
+      if (args.compress_tokens) {
+        const comp = PromptCompressor.compressMessages(messages);
+        messages = comp.messages;
+        compressionStats = comp.stats;
+      }
 
       // Build the candidate sequence:
       // If ad-hoc endpoint_url is passed without custom chain, try it directly
@@ -302,7 +328,15 @@ async function handleToolCall(name, args) {
           latency: `${result.latency_ms}ms`,
           reasoning: result.reasoning || null,
           content: result.content,
-          usage: result.usage
+          usage: result.usage,
+          ...(compressionStats && compressionStats.saved_tokens > 0 ? {
+            compression: {
+              tokens_saved: compressionStats.saved_tokens,
+              savings: compressionStats.savings_percent,
+              original_tokens_est: compressionStats.original_tokens,
+              compressed_tokens_est: compressionStats.compressed_tokens
+            }
+          } : {})
         };
       }
 
@@ -363,7 +397,15 @@ async function handleToolCall(name, args) {
               content: result.content,
               usage: result.usage,
               fallback_occurred: fallbackHistory.length > 0,
-              ...(fallbackHistory.length > 0 ? { fallback_history: fallbackHistory } : {})
+              ...(fallbackHistory.length > 0 ? { fallback_history: fallbackHistory } : {}),
+              ...(compressionStats && compressionStats.saved_tokens > 0 ? {
+                compression: {
+                  tokens_saved: compressionStats.saved_tokens,
+                  savings: compressionStats.savings_percent,
+                  original_tokens_est: compressionStats.original_tokens,
+                  compressed_tokens_est: compressionStats.compressed_tokens
+                }
+              } : {})
             };
           } catch (attemptErr) {
             fallbackHistory.push({
@@ -631,6 +673,17 @@ async function handleToolCall(name, args) {
         online_services: scan.online_services,
         vault_synced: synced,
         total_scanned: scan.total_scanned
+      };
+    }
+
+    case 'llm_compress_prompt': {
+      const res = PromptCompressor.compress(args.text);
+      return {
+        original_tokens_est: res.original_tokens,
+        compressed_tokens_est: res.compressed_tokens,
+        saved_tokens: res.saved_tokens,
+        savings_percent: res.savings_percent,
+        compressed_text: res.compressed
       };
     }
 

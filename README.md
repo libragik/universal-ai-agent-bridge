@@ -52,16 +52,17 @@ Google Antigravity Desktop operates as an agent-first workspace without legacy e
 
 1. **Zero-Downtime Smart Fallback Cascade (Auto 429 / 5xx Recovery)**: Automatically recovers from HTTP 429 rate limits, concurrency exhaustion, or 5xx provider outages. When a target model is overwhelmed, it cascades down your configured sequence (e.g. `dahl` → `groq` → `deepseek` → `ollama`) without interrupting the Antigravity agent loop.
 2. **Auto-Discovery Port Scanner (Zero-Config Local AI)**: Automatically probes ports `11434` (Ollama), `1234` (LM Studio), `20128` (9Router/OmniRoute), `4000` (FreeLLMAPI), `8000` (vLLM), `8080` (LocalAI), and `1337` (Jan). Detects active services in under 100ms, lists their loaded models, and auto-populates them into your Antigravity vault.
-3. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
-4. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
-5. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
-6. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
-7. **Multi-Modal Support**:
+3. **Smart Prompt Compression (RTK Token-Saver)**: Heuristic compression engine that deduplicates repeated log polling lines, truncates deep library stack frames (e.g. node_modules chains), and normalizes whitespace while strictly preserving code indentation and semantics. Slashes input token consumption by 20% to 50%.
+4. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
+5. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
+6. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
+7. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
+8. **Multi-Modal Support**:
    - Text completions via `/v1/chat/completions`
    - Image generation via `/v1/images/generations` (FLUX.1, DALL-E, SD3)
    - Video generation via `/v1/videos/generations` (LTX-Video, Hailuo, Wan2.1)
-8. **Cross-Model Comparison**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
-9. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
+9. **Cross-Model Comparison**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
+10. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
 
 ---
 

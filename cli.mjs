@@ -2,6 +2,7 @@
 import { ProviderVault } from './provider-vault.mjs';
 import { LLMClient } from './client.mjs';
 import { LocalScanner } from './scanner.mjs';
+import { PromptCompressor } from './compressor.mjs';
 
 const vault = new ProviderVault();
 const args = process.argv.slice(2);
@@ -19,7 +20,8 @@ Usage:
   agy-llm add <key> <url> [key] [model]  Add or update a provider endpoint
   agy-llm cascade [set prov1 prov2...]   View or set the automatic failover cascade
   agy-llm scan                           Auto-scan local ports for running AI engines
-  agy-llm ask <prompt>                   Quick test query using active provider
+  agy-llm compress <text>                Compress prompt text and preview token savings
+  agy-llm ask [--compress] <prompt>      Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 
 Examples:
@@ -115,8 +117,23 @@ async function run() {
       }
 
       case 'ask': {
-        const prompt = args.slice(1).join(' ');
+        let shouldCompress = false;
+        let promptArgs = args.slice(1);
+        if (promptArgs[0] === '--compress') {
+          shouldCompress = true;
+          promptArgs = promptArgs.slice(1);
+        }
+        let prompt = promptArgs.join(' ');
         if (!prompt) return console.error('Please provide a prompt to ask.');
+        
+        let compStats = null;
+        if (shouldCompress) {
+          const comp = PromptCompressor.compress(prompt);
+          compStats = comp;
+          prompt = comp.compressed;
+          console.log(`[RTK Token-Saver]: Compressed prompt from ~${comp.original_tokens} to ~${comp.compressed_tokens} tokens (Saved ${comp.savings_percent}).`);
+        }
+
         const resolved = vault.getActiveProvider();
         console.log(`Querying ${resolved.name} [${resolved.default_model}]...`);
         const res = await LLMClient.chatCompletion({
@@ -130,6 +147,19 @@ async function run() {
           console.log(`[Reasoning]\n${res.reasoning}\n`);
         }
         console.log(res.content);
+        break;
+      }
+
+      case 'compress': {
+        const text = args.slice(1).join(' ');
+        if (!text) return console.error('Usage: agy-llm compress <text>');
+        const res = PromptCompressor.compress(text);
+        console.log('\n--- Compressed Text ---');
+        console.log(res.compressed);
+        console.log('\n--- Token Metrics ---');
+        console.log(`Original:   ~${res.original_tokens} tokens (${res.original_chars} chars)`);
+        console.log(`Compressed: ~${res.compressed_tokens} tokens (${res.compressed_chars} chars)`);
+        console.log(`Saved:      ~${res.saved_tokens} tokens (${res.savings_percent} savings)`);
         break;
       }
 

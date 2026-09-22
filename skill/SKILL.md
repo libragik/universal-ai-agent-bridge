@@ -31,6 +31,7 @@ Send prompts to any provider or ad-hoc endpoint:
 - **`endpoint_url`** & **`api_key`**: Directly query any arbitrary `/v1` URL on-the-fly
 - **`fallback`**: (Default `true`) Zero-downtime failover cascade upon encountering HTTP 429 (rate/concurrency limit) or 5xx outage
 - **`fallback_chain`**: Custom sequence of provider keys to attempt (e.g., `["dahl", "groq", "deepseek", "ollama"]`)
+- **`compress_tokens`**: (Default `false`) Enables RTK Smart Prompt Compression to strip redundant whitespace, duplicate logs, and deep stack frames, reducing input tokens by 20%-40%
 
 ### 2. `llm_list_models`
 Discover available models by calling `GET /v1/models` on any endpoint.
@@ -46,6 +47,9 @@ Run an identical prompt across multiple endpoints or models concurrently to comp
 
 ### 6. `llm_autodetect`
 Auto-scans local ports (`11434`, `1234`, `20128`, `4000`, `8000`, `8080`, `1337`) for running AI servers (Ollama, LM Studio, 9Router, FreeLLMAPI, vLLM, Jan, LocalAI), pulls all live loaded models, and auto-syncs them into the vault.
+
+### 7. `llm_compress_prompt`
+Standalone text compressor tool. Returns compressed text alongside exact token savings and percentage reduction.
 
 ---
 

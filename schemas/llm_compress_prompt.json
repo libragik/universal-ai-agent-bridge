@@ -1,0 +1,16 @@
+{
+  "name": "llm_compress_prompt",
+  "description": "Compress any prompt, code block, log output, or stack trace using RTK Smart Compression to strip redundant whitespace, duplicate lines, and deep library frames while maintaining code semantics. Returns token savings metrics.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The text or code to compress."
+      }
+    },
+    "required": [
+      "text"
+    ]
+  }
+}
