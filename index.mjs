@@ -5,9 +5,11 @@ import { LLMClient } from './client.mjs';
 import { LocalScanner } from './scanner.mjs';
 import { PromptCompressor } from './compressor.mjs';
 import { CouncilEngine } from './council.mjs';
+import { TokenLedger } from './ledger.mjs';
 
 const vault = new ProviderVault();
-const councilEngine = new CouncilEngine(vault);
+const ledger = new TokenLedger();
+const councilEngine = new CouncilEngine(vault, ledger);
 
 const TOOLS = [
   {
@@ -337,6 +339,32 @@ const TOOLS = [
       },
       required: ['prompt']
     }
+  },
+  {
+    name: 'llm_get_analytics',
+    description: 'Retrieve comprehensive cost, token usage, and latency analytics from the Antigravity Local LLM Ledger. View total tokens spent, estimated USD expenditure, breakdowns per provider (Dahl, Groq, DeepSeek, Ollama) and per model, or reset ledger statistics.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['get', 'clear'],
+          description: "Action to perform: 'get' (default) returns current analytics and recent transactions; 'clear' resets the ledger counters."
+        },
+        provider: {
+          type: 'string',
+          description: 'Optional filter: get analytics or transactions specifically for this provider alias.'
+        },
+        model: {
+          type: 'string',
+          description: 'Optional filter: get analytics or transactions for this specific model.'
+        },
+        limit: {
+          type: 'integer',
+          description: 'Number of recent query transactions to include (default 20).'
+        }
+      }
+    }
   }
 ];
 
@@ -373,6 +401,16 @@ async function handleToolCall(name, args) {
           temperature: args.temperature ?? 0.7,
           maxTokens: args.max_tokens ?? null,
           customHeaders: resolved.headers || {}
+        });
+
+        ledger.record({
+          provider: 'adhoc',
+          model: result.model,
+          promptTokens: result.usage?.prompt_tokens || 0,
+          completionTokens: result.usage?.completion_tokens || 0,
+          totalTokens: result.usage?.total_tokens || 0,
+          latencyMs: result.latency_ms,
+          tool: 'llm_query'
         });
 
         return {
@@ -440,6 +478,16 @@ async function handleToolCall(name, args) {
               temperature: args.temperature ?? 0.7,
               maxTokens: args.max_tokens ?? null,
               customHeaders: resolved.headers || {}
+            });
+
+            ledger.record({
+              provider: resolved.key || resolved.name,
+              model: result.model,
+              promptTokens: result.usage?.prompt_tokens || 0,
+              completionTokens: result.usage?.completion_tokens || 0,
+              totalTokens: result.usage?.total_tokens || 0,
+              latencyMs: result.latency_ms,
+              tool: 'llm_query'
             });
 
             return {
@@ -625,6 +673,16 @@ async function handleToolCall(name, args) {
             customHeaders: resolved.headers || {}
           });
 
+          ledger.record({
+            provider: resolved.key || resolved.name,
+            model: modelName,
+            promptTokens: res.usage?.prompt_tokens || 0,
+            completionTokens: res.usage?.completion_tokens || 0,
+            totalTokens: res.usage?.total_tokens || 0,
+            latencyMs: res.latency_ms,
+            tool: 'llm_compare'
+          });
+
           return {
             target: `${resolved.name || resolved.key} (${modelName})`,
             latency: `${res.latency_ms}ms`,
@@ -749,6 +807,22 @@ async function handleToolCall(name, args) {
         judge: args.judge,
         temperature: args.temperature,
         synthesis_instruction: args.synthesis_instruction
+      });
+    }
+
+    case 'llm_get_analytics': {
+      if (args.action === 'clear') {
+        ledger.clear();
+        return {
+          message: 'Local LLM Ledger statistics have been reset successfully.',
+          status: 'cleared'
+        };
+      }
+
+      return ledger.getAnalytics({
+        limit: args.limit || 20,
+        provider: args.provider,
+        model: args.model
       });
     }
 

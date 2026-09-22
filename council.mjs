@@ -6,8 +6,9 @@
 import { LLMClient } from './client.mjs';
 
 export class CouncilEngine {
-  constructor(vault) {
+  constructor(vault, ledger = null) {
     this.vault = vault;
+    this.ledger = ledger;
   }
 
   /**
@@ -183,11 +184,24 @@ export class CouncilEngine {
           timeoutMs: timeout_ms
         });
 
+        const modelUsed = res.modelUsed || m.model;
+        if (this.ledger) {
+          this.ledger.record({
+            provider: m.providerKey || m.name,
+            model: modelUsed,
+            promptTokens: res.usage?.prompt_tokens || 0,
+            completionTokens: res.usage?.completion_tokens || 0,
+            totalTokens: res.usage?.total_tokens || 0,
+            latencyMs: res.latency_ms,
+            tool: 'llm_council_member'
+          });
+        }
+
         return {
           id: m.id,
           member: m.name,
           role: m.roleDescription,
-          model: res.modelUsed || m.model,
+          model: modelUsed,
           status: 'success',
           latency_ms: res.latency_ms,
           content: res.content,
@@ -278,13 +292,26 @@ ${synthesis_instruction || 'Please structure your response as follows:\n1. **Cou
       timeoutMs: timeout_ms
     });
 
+    const judgeModelUsed = judgeRes.modelUsed || resolvedJudge.model;
+    if (this.ledger) {
+      this.ledger.record({
+        provider: resolvedJudge.providerKey || resolvedJudge.name,
+        model: judgeModelUsed,
+        promptTokens: judgeRes.usage?.prompt_tokens || 0,
+        completionTokens: judgeRes.usage?.completion_tokens || 0,
+        totalTokens: judgeRes.usage?.total_tokens || 0,
+        latencyMs: judgeRes.latency_ms,
+        tool: 'llm_council_judge'
+      });
+    }
+
     const totalLatency = Date.now() - startTime;
 
     return {
       consensus: judgeRes.content,
       judge: {
         name: resolvedJudge.name,
-        model: judgeRes.modelUsed || resolvedJudge.model,
+        model: judgeModelUsed,
         latency_ms: judgeRes.latency_ms,
         reasoning: judgeRes.reasoning || null,
         usage: judgeRes.usage || null

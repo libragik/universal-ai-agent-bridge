@@ -1,0 +1,26 @@
+{
+  "name": "llm_get_analytics",
+  "description": "Retrieve comprehensive cost, token usage, and latency analytics from the Antigravity Local LLM Ledger. View total tokens spent, estimated USD expenditure, breakdowns per provider (Dahl, Groq, DeepSeek, Ollama) and per model, or reset ledger statistics.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["get", "clear"],
+        "description": "Action to perform: 'get' (default) returns current analytics and recent transactions; 'clear' resets the ledger counters."
+      },
+      "provider": {
+        "type": "string",
+        "description": "Optional filter: get analytics or transactions specifically for this provider alias."
+      },
+      "model": {
+        "type": "string",
+        "description": "Optional filter: get analytics or transactions for this specific model."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of recent query transactions to include (default 20)."
+      }
+    }
+  }
+}

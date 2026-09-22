@@ -2,8 +2,10 @@
 node_modules/
 package-lock.json
 
-# Local secrets & credentials
+# Local secrets, credentials & ledgers
 llm_providers.json
+llm_ledger.json
+*ledger*.json
 .env
 .env.*
 *.key

@@ -4,8 +4,10 @@ import { LLMClient } from './client.mjs';
 import { LocalScanner } from './scanner.mjs';
 import { PromptCompressor } from './compressor.mjs';
 import { CouncilEngine } from './council.mjs';
+import { TokenLedger } from './ledger.mjs';
 
 const vault = new ProviderVault();
+const ledger = new TokenLedger();
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -23,6 +25,7 @@ Usage:
   agy-llm scan                           Auto-scan local ports for running AI engines
   agy-llm compress <text>                Compress prompt text and preview token savings
   agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
+  agy-llm ledger [clear]                 View token consumption & estimated USD costs
   agy-llm ask [--compress] <prompt>      Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 
@@ -150,6 +153,16 @@ async function run() {
           console.log(`[Reasoning]\n${res.reasoning}\n`);
         }
         console.log(res.content);
+
+        ledger.record({
+          provider: resolved.key,
+          model: resolved.default_model,
+          promptTokens: res.usage?.prompt_tokens || 0,
+          completionTokens: res.usage?.completion_tokens || 0,
+          totalTokens: res.usage?.total_tokens || 0,
+          latencyMs: res.latency_ms,
+          tool: 'cli_ask'
+        });
         break;
       }
 
@@ -244,7 +257,7 @@ async function run() {
           customJudge = { provider: p, model: rest.join(':') || undefined };
         }
 
-        const councilEngine = new CouncilEngine(vault);
+        const councilEngine = new CouncilEngine(vault, ledger);
         console.log('\n🏛️  Initiating Multi-Model AI Council Deliberation...');
         console.log(`Prompt: "${prompt.slice(0, 80)}${prompt.length > 80 ? '...' : ''}"\n`);
 
@@ -271,6 +284,56 @@ async function run() {
         console.log('======================================================\n');
         console.log(deliberation.consensus);
         console.log(`\n✔ Council Deliberation complete in ${(deliberation.summary.total_latency_ms / 1000).toFixed(2)}s (${deliberation.summary.successful_members}/${deliberation.summary.total_members} members contributed).`);
+        break;
+      }
+
+      case 'ledger': {
+        const sub = args[1];
+        if (sub === 'clear' || sub === 'reset') {
+          ledger.clear();
+          console.log('\n✔ Antigravity Local LLM Ledger has been reset.');
+          break;
+        }
+
+        const stats = ledger.getAnalytics({ limit: 15 });
+        console.log('\n======================================================');
+        console.log('📊  ANTIGRAVITY LOCAL LLM COST & TOKEN LEDGER');
+        console.log('======================================================');
+        console.log(`Ledger File:   ${stats.ledger_file}`);
+        console.log(`Total Queries: ${stats.total_queries}`);
+        console.log(`Total Tokens:  ${stats.total_tokens.toLocaleString()} (Prompt: ${stats.total_prompt_tokens.toLocaleString()}, Output: ${stats.total_completion_tokens.toLocaleString()})`);
+        console.log(`Est. Cost:     ${stats.total_cost_usd} USD\n`);
+
+        console.log('--- 🏢 Breakdown By Provider ---');
+        const pEntries = Object.entries(stats.providers);
+        if (pEntries.length === 0) {
+          console.log('No provider activity logged yet.');
+        } else {
+          for (const [p, val] of pEntries) {
+            console.log(`- ${p.padEnd(16)} | Queries: ${String(val.queries).padStart(4)} | Tokens: ${String(val.tokens.toLocaleString()).padStart(8)} | Cost: $${val.cost_usd.toFixed(5)}`);
+          }
+        }
+
+        console.log('\n--- 🤖 Breakdown By Model ---');
+        const mEntries = Object.entries(stats.models);
+        if (mEntries.length === 0) {
+          console.log('No model activity logged yet.');
+        } else {
+          for (const [m, val] of mEntries) {
+            console.log(`- ${m.padEnd(36)} | Queries: ${String(val.queries).padStart(3)} | Tokens: ${String(val.tokens.toLocaleString()).padStart(7)} | Cost: $${val.cost_usd.toFixed(5)}`);
+          }
+        }
+
+        console.log('\n--- 🕒 Recent Transactions (Last 15) ---');
+        if (stats.recent_transactions.length === 0) {
+          console.log('No recent transactions recorded.');
+        } else {
+          for (const tx of stats.recent_transactions) {
+            const time = tx.timestamp ? tx.timestamp.replace('T', ' ').slice(0, 19) : 'now';
+            console.log(`[${time}] ${tx.target.padEnd(42)} ${String(tx.tokens).padStart(6)} tok | ${tx.cost.padStart(8)} | ${tx.latency}`);
+          }
+        }
+        console.log('');
         break;
       }
 

@@ -54,16 +54,17 @@ Google Antigravity Desktop operates as an agent-first workspace without legacy e
 2. **Auto-Discovery Port Scanner (Zero-Config Local AI)**: Automatically probes ports `11434` (Ollama), `1234` (LM Studio), `20128` (9Router/OmniRoute), `4000` (FreeLLMAPI), `8000` (vLLM), `8080` (LocalAI), and `1337` (Jan). Detects active services in under 100ms, lists their loaded models, and auto-populates them into your Antigravity vault.
 3. **Smart Prompt Compression (RTK Token-Saver)**: Heuristic compression engine that deduplicates repeated log polling lines, truncates deep library stack frames (e.g. node_modules chains), and normalizes whitespace while strictly preserving code indentation and semantics. Slashes input token consumption by 20% to 50%.
 4. **Multi-Model Consensus & Council Deliberation (`llm_council`)**: Queries multiple specialized models simultaneously (e.g., DeepSeek for mathematical logic, Claude/MiniMax for instruction following, Ollama for local verification) and dispatches all perspectives to a Chief Justice / Synthesizer model that cross-examines the candidate answers, catches edge bugs, and synthesizes the single definitive consensus verdict.
-5. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
-6. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
-7. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
-8. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
-9. **Multi-Modal Support**:
+5. **Local Cost & Token Usage Ledger (`ledger.mjs`, `llm_get_analytics`, `agy-llm ledger`)**: Persistent local transaction accounting that logs input/output tokens across every query and calculates real-time USD expenditures using built-in rate cards (Dahl, DeepSeek, Groq, OpenRouter, and 100% free offline Ollama/LM Studio).
+6. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
+7. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
+8. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
+9. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
+10. **Multi-Modal Support**:
    - Text completions via `/v1/chat/completions`
    - Image generation via `/v1/images/generations` (FLUX.1, DALL-E, SD3)
    - Video generation via `/v1/videos/generations` (LTX-Video, Hailuo, Wan2.1)
-10. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
-11. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
+11. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
+12. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
 
 ---
 
@@ -160,11 +161,15 @@ Standalone RTK prompt compressor that cuts redundant whitespace, poll loops, and
 ### 10. `llm_council`
 Multi-Model Consensus deliberation. Queries multiple models/providers in parallel and runs an automated Chief Justice cross-examination to synthesize the single optimal consensus solution.
 
+### 11. `llm_get_analytics`
+Query real-time token counts and estimated USD costs from the local ledger. Breaks down usage per provider and model with recent transaction logs.
+
 ---
 
 ## Example Antigravity Chat Prompts
 
 You can speak naturally to Antigravity:
+- *"Show me my token usage and estimated LLM costs."*
 - *"Convene an AI council to debate whether we should use Redis or PostgreSQL for background jobs."*
 - *"Use Dahl to check if there are edge cases in this sorting function."*
 - *"Run `llm_test_connection` on my Groq endpoint."*
@@ -188,6 +193,7 @@ Usage:
   agy-llm scan                           Auto-scan local ports for running AI engines
   agy-llm compress <text>                Compress prompt text and preview token savings
   agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
+  agy-llm ledger [clear]                 View token consumption & estimated USD costs
   agy-llm ask [--compress] <prompt>      Quick test query using active provider
   agy-llm remove <provider_key>          Remove a provider from vault
 ```

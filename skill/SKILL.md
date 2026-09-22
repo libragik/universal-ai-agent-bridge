@@ -58,12 +58,28 @@ Multi-Model Consensus & Council Deliberation. Broadcasts a complex prompt, code 
 - **`judge`**: Synthesizer model (defaults to active default model)
 - **`synthesis_instruction`**: Optional custom instructions for the Chief Justice verdict
 
+### 9. `llm_get_analytics`
+Query the Local Cost & Token Usage Ledger. Retrieves real-time token consumption, estimated USD expenditure, and breakdowns per provider and model.
+- **`action`**: `"get"` (default) or `"clear"` (reset statistics)
+- **`provider`**: Optional filter for a specific provider
+- **`model`**: Optional filter for a specific model
+- **`limit`**: Number of recent transactions to view (default 20)
+
 ---
 
 ## Terminal CLI Management: `agy-llm`
 
 You can also run commands directly from the Antigravity integrated terminal or Windows PowerShell:
 ```bash
+# View token expenditure and cost analytics
+agy-llm ledger
+
+# Reset ledger
+agy-llm ledger clear
+
+# Convene a Multi-Model Council
+agy-llm council "Compare Redis vs PostgreSQL for task queues"
+
 # List all providers in the vault
 agy-llm list
 
