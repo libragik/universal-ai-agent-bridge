@@ -57,6 +57,14 @@
       "temperature": {
         "description": "Sampling temperature (0.0 to 1.0). Default is 0.7.",
         "type": "number"
+      },
+      "use_cache": {
+        "description": "Check and store responses in the local dynamic response cache (0ms instant hits, zero token expenditure). Default is true.",
+        "type": "boolean"
+      },
+      "cache_ttl": {
+        "description": "Cache time-to-live in seconds. Default is 86400 (24 hours). Use 0 for indefinite caching.",
+        "type": "number"
       }
     },
     "required": [

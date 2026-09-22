@@ -33,6 +33,8 @@ Send prompts to any provider or ad-hoc endpoint:
 - **`fallback_chain`**: Custom sequence of provider keys to attempt (e.g., `["dahl", "groq", "deepseek", "ollama"]`)
 - **`compress_tokens`**: (Default `false`) Enables RTK Smart Prompt Compression to strip redundant whitespace, duplicate logs, and deep stack frames, reducing input tokens by 20%-40%
 - **`stream`**: (Default `false`) Enables SSE streaming mode with live token telemetry (Time-To-First-Token, tokens/sec velocity, and token counts)
+- **`use_cache`**: (Default `true`) Instant 0ms cache hits for identical queries, saving 100% of tokens on repeated prompts
+- **`cache_ttl`**: (Default `86400`) Cache expiration time in seconds (24 hours). Use `0` for indefinite caching
 - **`preset`**: System persona preset key (e.g., `security-auditor`, `systems-architect`)
 
 ### 2. `llm_list_models`
@@ -73,6 +75,11 @@ Manage and apply expert System Personas and Prompt Presets (e.g. `security-audit
 - **`name`**: Preset key (e.g. `"security-auditor"`, `"custom-preset"`)
 - In `llm_query` and `llm_council`: Pass `preset: "security-auditor"` to automatically inject specialized system instructions and calibrated temperatures without manually copying prompts.
 
+### 11. `llm_cache`
+Manage the Dynamic Response Cache. Inspect cache hits and token/USD savings, prune expired entries, or clear the cache.
+- **`action`**: `"stats"` (view hit rate, savings, and disk usage), `"inspect"` (view recent cached entries), `"prune"` (purge expired entries), or `"clear"` (empty entire cache)
+- **`limit`**: Max entries to display when action is `"inspect"` (default 10)
+
 ---
 
 ## Terminal CLI Management: `agy-llm`
@@ -91,6 +98,11 @@ agy-llm ledger
 
 # Reset ledger
 agy-llm ledger clear
+
+# Inspect dynamic response cache & token savings
+agy-llm cache stats
+agy-llm cache inspect
+agy-llm cache clear
 
 # Convene a Multi-Model Council
 agy-llm council "Compare Redis vs PostgreSQL for task queues"

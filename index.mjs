@@ -7,10 +7,12 @@ import { PromptCompressor } from './compressor.mjs';
 import { CouncilEngine } from './council.mjs';
 import { TokenLedger } from './ledger.mjs';
 import { PresetVault } from './presets.mjs';
+import { ResponseCache } from './cache.mjs';
 
 const vault = new ProviderVault();
 const ledger = new TokenLedger();
 const presetVault = new PresetVault();
+const responseCache = new ResponseCache();
 const councilEngine = new CouncilEngine(vault, ledger, presetVault);
 
 const TOOLS = [
@@ -72,6 +74,14 @@ const TOOLS = [
         preset: {
           type: 'string',
           description: "Name of system persona or prompt preset to apply (e.g. 'security-auditor', 'systems-architect', 'code-simplifier', 'quant-trader', 'fullstack-reviewer', 'explain-like-pro', or custom preset name). Automatically injects specialized system prompt and optimal temperature."
+        },
+        use_cache: {
+          type: 'boolean',
+          description: 'Check and store responses in the local dynamic response cache (0ms instant hits, zero token expenditure). Default is true.'
+        },
+        cache_ttl: {
+          type: 'number',
+          description: 'Cache time-to-live in seconds. Default is 86400 (24 hours). Use 0 for indefinite caching.'
         }
       },
       required: ['prompt']
@@ -413,6 +423,25 @@ const TOOLS = [
         }
       }
     }
+  },
+  {
+    name: 'llm_cache',
+    description: "Manage the Dynamic Response Cache for external LLMs. Inspect cache hit rates, view token and USD savings, prune expired entries, or clear the cache.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['stats', 'inspect', 'prune', 'clear'],
+          description: "Action to perform: 'stats' (view hit rate, savings, and disk usage), 'inspect' (view recent cached responses), 'prune' (evict expired entries), or 'clear' (empty entire cache)."
+        },
+        limit: {
+          type: 'number',
+          description: "Maximum number of entries to display when action is 'inspect'. Default is 10."
+        }
+      },
+      required: ['action']
+    }
   }
 ];
 
@@ -450,6 +479,9 @@ async function handleToolCall(name, args) {
         compressionStats = comp.stats;
       }
 
+      const useCache = args.use_cache !== false;
+      const cacheTtl = args.cache_ttl !== undefined ? args.cache_ttl : 86400;
+
       // Build the candidate sequence:
       // If ad-hoc endpoint_url is passed without custom chain, try it directly
       if (args.endpoint_url && !args.fallback_chain) {
@@ -459,15 +491,69 @@ async function handleToolCall(name, args) {
           model: args.model
         });
 
+        const targetModel = args.model || resolved.default_model;
+        const keyParams = {
+          provider: 'adhoc',
+          model: targetModel,
+          messages,
+          temperature: args.temperature ?? 0.7,
+          maxTokens: args.max_tokens ?? null
+        };
+
+        if (useCache) {
+          const hit = responseCache.get(keyParams);
+          if (hit) {
+            ledger.record({
+              provider: 'adhoc',
+              model: hit.model,
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0,
+              latencyMs: 0,
+              tool: 'llm_query_cached'
+            });
+
+            return {
+              provider_used: 'Ad-hoc Endpoint (Cache Hit)',
+              base_url: resolved.base_url,
+              model: hit.model,
+              cached: true,
+              cache_hash: hit.hash,
+              hit_count: hit.hit_count,
+              latency: '0ms',
+              tokens_saved: hit.tokens_saved,
+              est_usd_saved: `$${hit.est_usd_saved} USD`,
+              reasoning: hit.reasoning || null,
+              content: hit.content,
+              usage: hit.usage,
+              ...(compressionStats && compressionStats.saved_tokens > 0 ? {
+                compression: {
+                  tokens_saved: compressionStats.saved_tokens,
+                  savings: compressionStats.savings_percent
+                }
+              } : {})
+            };
+          }
+        }
+
         const result = await LLMClient.chatCompletion({
           baseUrl: resolved.base_url,
           apiKey: resolved.api_key,
-          model: args.model || resolved.default_model,
+          model: targetModel,
           messages,
           temperature: args.temperature ?? 0.7,
           maxTokens: args.max_tokens ?? null,
           customHeaders: resolved.headers || {}
         });
+
+        if (useCache) {
+          responseCache.set(keyParams, {
+            model: result.model,
+            content: result.content,
+            reasoning: result.reasoning,
+            usage: result.usage
+          }, cacheTtl);
+        }
 
         ledger.record({
           provider: 'adhoc',
@@ -536,6 +622,56 @@ async function handleToolCall(name, args) {
 
         for (const modelAttempt of modelsToTry) {
           try {
+            const keyParams = {
+              provider: resolved.key || resolved.name,
+              model: modelAttempt,
+              messages,
+              temperature: args.temperature ?? 0.7,
+              maxTokens: args.max_tokens ?? null
+            };
+
+            if (useCache) {
+              const hit = responseCache.get(keyParams);
+              if (hit) {
+                ledger.record({
+                  provider: resolved.key || resolved.name,
+                  model: hit.model,
+                  promptTokens: 0,
+                  completionTokens: 0,
+                  totalTokens: 0,
+                  latencyMs: 0,
+                  tool: 'llm_query_cached'
+                });
+
+                return {
+                  provider_used: resolved.name || resolved.key,
+                  base_url: resolved.base_url,
+                  model: hit.model,
+                  cached: true,
+                  cache_hash: hit.hash,
+                  hit_count: hit.hit_count,
+                  latency: '0ms',
+                  tokens_saved: hit.tokens_saved,
+                  est_usd_saved: `$${hit.est_usd_saved} USD`,
+                  reasoning: hit.reasoning || null,
+                  content: hit.content,
+                  usage: hit.usage,
+                  created_at: hit.created_at,
+                  expires_at: hit.expires_at,
+                  fallback_occurred: fallbackHistory.length > 0,
+                  ...(fallbackHistory.length > 0 ? { fallback_history: fallbackHistory } : {}),
+                  ...(compressionStats && compressionStats.saved_tokens > 0 ? {
+                    compression: {
+                      tokens_saved: compressionStats.saved_tokens,
+                      savings: compressionStats.savings_percent,
+                      original_tokens_est: compressionStats.original_tokens,
+                      compressed_tokens_est: compressionStats.compressed_tokens
+                    }
+                  } : {})
+                };
+              }
+            }
+
             if (args.stream) {
               const streamRes = await LLMClient.chatCompletionStream({
                 baseUrl: resolved.base_url,
@@ -546,6 +682,15 @@ async function handleToolCall(name, args) {
                 maxTokens: args.max_tokens ?? null,
                 customHeaders: resolved.headers || {}
               });
+
+              if (useCache) {
+                responseCache.set(keyParams, {
+                  model: streamRes.model,
+                  content: streamRes.content,
+                  reasoning: streamRes.reasoning,
+                  usage: streamRes.usage
+                }, cacheTtl);
+              }
 
               ledger.record({
                 provider: resolved.key || resolved.name,
@@ -597,6 +742,15 @@ async function handleToolCall(name, args) {
               maxTokens: args.max_tokens ?? null,
               customHeaders: resolved.headers || {}
             });
+
+            if (useCache) {
+              responseCache.set(keyParams, {
+                model: result.model,
+                content: result.content,
+                reasoning: result.reasoning,
+                usage: result.usage
+              }, cacheTtl);
+            }
 
             ledger.record({
               provider: resolved.key || resolved.name,
@@ -986,6 +1140,36 @@ async function handleToolCall(name, args) {
       }
 
       throw new Error(`Unknown action "${action}"`);
+    }
+
+    case 'llm_cache': {
+      const action = args.action || 'stats';
+      if (action === 'stats') {
+        return responseCache.stats();
+      }
+      if (action === 'inspect') {
+        const items = responseCache.inspect(args.limit || 10);
+        return {
+          cached_entries: items,
+          count: items.length,
+          stats: responseCache.stats()
+        };
+      }
+      if (action === 'prune') {
+        const res = responseCache.prune();
+        return {
+          message: `Pruned ${res.pruned} expired cache entries. ${res.remaining} active entries remain.`,
+          ...res
+        };
+      }
+      if (action === 'clear') {
+        const res = responseCache.clear();
+        return {
+          message: `Dynamic Response Cache cleared. ${res.cleared} entries removed.`,
+          ...res
+        };
+      }
+      throw new Error(`Unknown cache action "${action}". Available: stats, inspect, prune, clear`);
     }
 
     default:

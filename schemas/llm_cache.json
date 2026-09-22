@@ -1,0 +1,26 @@
+{
+  "name": "llm_cache",
+  "description": "Manage the Dynamic Response Cache for external LLMs. Inspect cache hit rates, view token and USD savings, prune expired entries, or clear the cache.",
+  "parameters": {
+    "properties": {
+      "action": {
+        "description": "Action to perform: 'stats' (view hit rate, savings, and disk usage), 'inspect' (view recent cached responses), 'prune' (evict expired entries), or 'clear' (empty entire cache).",
+        "enum": [
+          "stats",
+          "inspect",
+          "prune",
+          "clear"
+        ],
+        "type": "string"
+      },
+      "limit": {
+        "description": "Maximum number of entries to display when action is 'inspect'. Default is 10.",
+        "type": "number"
+      }
+    },
+    "required": [
+      "action"
+    ],
+    "type": "object"
+  }
+}

@@ -6,10 +6,12 @@ import { PromptCompressor } from './compressor.mjs';
 import { CouncilEngine } from './council.mjs';
 import { TokenLedger } from './ledger.mjs';
 import { PresetVault } from './presets.mjs';
+import { ResponseCache } from './cache.mjs';
 
 const vault = new ProviderVault();
 const ledger = new TokenLedger();
 const presetVault = new PresetVault();
+const cache = new ResponseCache();
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -29,7 +31,8 @@ Usage:
   agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
   agy-llm ledger [clear]                 View token consumption & estimated USD costs
   agy-llm preset [list|show|add|del]     Manage expert personas & prompt presets
-  agy-llm ask [--stream] [--preset p]    Query with optional live streaming & persona
+  agy-llm cache [stats|clear|prune]      Inspect or manage dynamic response cache
+  agy-llm ask [--stream] [--no-cache]    Query with live streaming, persona, or cache
   agy-llm remove <provider_key>          Remove a provider from vault
 
 Examples:
@@ -129,6 +132,7 @@ async function run() {
       case 'ask': {
         let shouldCompress = false;
         let shouldStream = false;
+        let noCache = false;
         let presetName = null;
         let promptArgs = args.slice(1);
 
@@ -139,6 +143,10 @@ async function run() {
             i--;
           } else if (promptArgs[i] === '--stream') {
             shouldStream = true;
+            promptArgs.splice(i, 1);
+            i--;
+          } else if (promptArgs[i] === '--no-cache') {
+            noCache = true;
             promptArgs.splice(i, 1);
             i--;
           } else if (promptArgs[i] === '--preset' && promptArgs[i + 1]) {
@@ -176,11 +184,41 @@ async function run() {
 
         const resolved = vault.getActiveProvider();
         const modelToUse = targetModel || resolved.default_model;
-        console.log(`Querying ${resolved.name} [${modelToUse}]...`);
-
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
         messages.push({ role: 'user', content: prompt });
+
+        const keyParams = {
+          provider: resolved.key,
+          model: modelToUse,
+          messages,
+          temperature,
+          maxTokens: null
+        };
+
+        if (!noCache) {
+          const hit = cache.get(keyParams);
+          if (hit) {
+            console.log(`\n⚡ CACHE HIT (0ms) | Saved ~${hit.tokens_saved} tokens ($${hit.est_usd_saved} USD) | Hits: ${hit.hit_count}\n`);
+            if (hit.reasoning) {
+              console.log(`[Reasoning]\n${hit.reasoning}\n`);
+            }
+            console.log(hit.content);
+
+            ledger.record({
+              provider: resolved.key,
+              model: modelToUse,
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0,
+              latencyMs: 0,
+              tool: 'cli_ask_cached'
+            });
+            break;
+          }
+        }
+
+        console.log(`Querying ${resolved.name} [${modelToUse}]...`);
 
         if (shouldStream) {
           let hasReasoning = false;
@@ -211,6 +249,15 @@ async function run() {
 
           console.log(`\n\n⚡ ${streamRes.tokens_generated} tokens | ${streamRes.tokens_per_sec} tok/s | TTFT: ${streamRes.ttft_ms}ms | Latency: ${(streamRes.latency_ms / 1000).toFixed(2)}s`);
 
+          if (!noCache) {
+            cache.set(keyParams, {
+              model: streamRes.model,
+              content: streamRes.content,
+              reasoning: streamRes.reasoning,
+              usage: streamRes.usage
+            });
+          }
+
           ledger.record({
             provider: resolved.key,
             model: modelToUse,
@@ -230,6 +277,16 @@ async function run() {
           messages,
           temperature
         });
+
+        if (!noCache) {
+          cache.set(keyParams, {
+            model: res.model,
+            content: res.content,
+            reasoning: res.reasoning,
+            usage: res.usage
+          });
+        }
+
         console.log(`\nResponse (${res.latency_ms}ms):\n`);
         if (res.reasoning) {
           console.log(`[Reasoning]\n${res.reasoning}\n`);
@@ -493,6 +550,57 @@ async function run() {
         }
 
         console.error(`Unknown preset command "${sub}". Available: list, show, add, delete`);
+        break;
+      }
+
+      case 'cache': {
+        const sub = args[1] || 'stats';
+        if (sub === 'stats') {
+          const s = cache.stats();
+          console.log('\n======================================================');
+          console.log('⚡  ANTIGRAVITY DYNAMIC RESPONSE CACHE');
+          console.log('======================================================');
+          console.log(`Cache File:    ${s.file_path}`);
+          console.log(`File Size:     ${s.file_size_kb} KB`);
+          console.log(`Total Entries: ${s.total_entries}`);
+          console.log(`Cache Hits:    ${s.hits}`);
+          console.log(`Cache Misses:  ${s.misses}`);
+          console.log(`Hit Ratio:     ${s.hit_rate}`);
+          console.log(`Tokens Saved:  ~${s.tokens_saved}`);
+          console.log(`Est. Savings:  ${s.est_usd_saved}\n`);
+          break;
+        }
+
+        if (sub === 'clear') {
+          const res = cache.clear();
+          console.log(`✔ Cache cleared. Removed ${res.cleared} entries.`);
+          break;
+        }
+
+        if (sub === 'prune') {
+          const res = cache.prune();
+          console.log(`✔ Pruned ${res.pruned} expired entries. ${res.remaining} active entries remain.`);
+          break;
+        }
+
+        if (sub === 'inspect') {
+          const limit = parseInt(args[2], 10) || 10;
+          const items = cache.inspect(limit);
+          console.log(`\n--- Recent Cached Responses (Top ${items.length}) ---`);
+          if (items.length === 0) {
+            console.log('Cache is currently empty.');
+          } else {
+            for (const item of items) {
+              console.log(`- [${item.hash}] ${item.provider}/${item.model} (hits: ${item.hits})`);
+              console.log(`    Snippet: ${item.snippet}`);
+              console.log(`    Created: ${item.created_at} | Expires: ${item.expires_at}`);
+            }
+          }
+          console.log('');
+          break;
+        }
+
+        console.error(`Unknown cache command "${sub}". Available: stats, clear, prune, inspect`);
         break;
       }
 

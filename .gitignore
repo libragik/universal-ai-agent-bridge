@@ -6,6 +6,7 @@ package-lock.json
 /llm_providers.json
 /llm_ledger.json
 /llm_presets.json
+/llm_cache.json
 !schemas/*.json
 .env
 .env.*
