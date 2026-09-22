@@ -29,12 +29,13 @@ Usage:
   agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
   agy-llm ledger [clear]                 View token consumption & estimated USD costs
   agy-llm preset [list|show|add|del]     Manage expert personas & prompt presets
-  agy-llm ask [--preset p] <prompt>      Quick test query using active provider & persona
+  agy-llm ask [--stream] [--preset p]    Query with optional live streaming & persona
   agy-llm remove <provider_key>          Remove a provider from vault
 
 Examples:
   agy-llm list
   agy-llm test dahl
+  agy-llm ask --stream "Explain SQLite WAL mode"
   agy-llm council "Should I use Redis or PostgreSQL for background queues?"
   agy-llm models dahl
   agy-llm add my_local http://localhost:11434/v1 ollama qwen2.5-coder:latest
@@ -127,12 +128,17 @@ async function run() {
 
       case 'ask': {
         let shouldCompress = false;
+        let shouldStream = false;
         let presetName = null;
         let promptArgs = args.slice(1);
 
         for (let i = 0; i < promptArgs.length; i++) {
           if (promptArgs[i] === '--compress') {
             shouldCompress = true;
+            promptArgs.splice(i, 1);
+            i--;
+          } else if (promptArgs[i] === '--stream') {
+            shouldStream = true;
             promptArgs.splice(i, 1);
             i--;
           } else if (promptArgs[i] === '--preset' && promptArgs[i + 1]) {
@@ -175,6 +181,47 @@ async function run() {
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
         messages.push({ role: 'user', content: prompt });
+
+        if (shouldStream) {
+          let hasReasoning = false;
+          let hasContent = false;
+          console.log('\n--- Live Streaming Response ---');
+
+          const streamRes = await LLMClient.chatCompletionStream({
+            baseUrl: resolved.base_url,
+            apiKey: resolved.api_key,
+            model: modelToUse,
+            messages,
+            temperature,
+            onReasoning: (chunk) => {
+              if (!hasReasoning) {
+                hasReasoning = true;
+                process.stdout.write('\n[Thinking]\n');
+              }
+              process.stdout.write(chunk);
+            },
+            onToken: (chunk) => {
+              if (hasReasoning && !hasContent) {
+                process.stdout.write('\n\n[Response]\n');
+              }
+              hasContent = true;
+              process.stdout.write(chunk);
+            }
+          });
+
+          console.log(`\n\n⚡ ${streamRes.tokens_generated} tokens | ${streamRes.tokens_per_sec} tok/s | TTFT: ${streamRes.ttft_ms}ms | Latency: ${(streamRes.latency_ms / 1000).toFixed(2)}s`);
+
+          ledger.record({
+            provider: resolved.key,
+            model: modelToUse,
+            promptTokens: streamRes.usage?.prompt_tokens || 0,
+            completionTokens: streamRes.usage?.completion_tokens || streamRes.tokens_generated,
+            totalTokens: streamRes.usage?.total_tokens || streamRes.tokens_generated,
+            latencyMs: streamRes.latency_ms,
+            tool: 'cli_ask_stream'
+          });
+          break;
+        }
 
         const res = await LLMClient.chatCompletion({
           baseUrl: resolved.base_url,

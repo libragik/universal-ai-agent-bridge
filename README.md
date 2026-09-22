@@ -56,16 +56,17 @@ Google Antigravity Desktop operates as an agent-first workspace without legacy e
 4. **Multi-Model Consensus & Council Deliberation (`llm_council`)**: Queries multiple specialized models simultaneously (e.g., DeepSeek for mathematical logic, Claude/MiniMax for instruction following, Ollama for local verification) and dispatches all perspectives to a Chief Justice / Synthesizer model that cross-examines the candidate answers, catches edge bugs, and synthesizes the single definitive consensus verdict.
 5. **Local Cost & Token Usage Ledger (`ledger.mjs`, `llm_get_analytics`, `agy-llm ledger`)**: Persistent local transaction accounting that logs input/output tokens across every query and calculates real-time USD expenditures using built-in rate cards (Dahl, DeepSeek, Groq, OpenRouter, and 100% free offline Ollama/LM Studio).
 6. **Dynamic System Persona & Prompt Preset Vault (`presets.mjs`, `llm_presets`, `agy-llm preset`)**: Instant cognitive lens switching with built-in battle-tested engineering personas (`security-auditor`, `systems-architect`, `code-simplifier`, `quant-trader`, `fullstack-reviewer`, `explain-like-pro`) or user-defined custom domain presets.
-7. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
-8. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
-9. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
-10. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
-11. **Multi-Modal Support**:
+7. **Real-Time SSE Streaming & Live Token Velocity Engine (`streaming.mjs`, `agy-llm ask --stream`)**: Zero-dependency Server-Sent Events (SSE) streaming engine with asynchronous generators, `<think>` / `reasoning_content` delta isolation, Time-To-First-Token (TTFT) metrics, and real-time token velocity telemetry (`tok/s`).
+8. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
+9. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
+10. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
+11. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
+12. **Multi-Modal Support**:
    - Text completions via `/v1/chat/completions`
    - Image generation via `/v1/images/generations` (FLUX.1, DALL-E, SD3)
    - Video generation via `/v1/videos/generations` (LTX-Video, Hailuo, Wan2.1)
-12. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
-13. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
+13. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
+14. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
 
 ---
 

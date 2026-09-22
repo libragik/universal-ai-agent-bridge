@@ -1,3 +1,5 @@
+import { StreamHandler } from './streaming.mjs';
+
 /**
  * Resilient OpenAI-compatible /v1 HTTP Client
  */
@@ -126,6 +128,14 @@ export class LLMClient {
       latency_ms: latencyMs,
       raw_id: data.id || null
     };
+  }
+
+  static async chatCompletionStream(options) {
+    return await StreamHandler.stream(options);
+  }
+
+  static async *chatCompletionStreamGenerator(options) {
+    yield* StreamHandler.createStreamGenerator(options);
   }
 
   static async listModels({

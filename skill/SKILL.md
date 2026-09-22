@@ -32,6 +32,8 @@ Send prompts to any provider or ad-hoc endpoint:
 - **`fallback`**: (Default `true`) Zero-downtime failover cascade upon encountering HTTP 429 (rate/concurrency limit) or 5xx outage
 - **`fallback_chain`**: Custom sequence of provider keys to attempt (e.g., `["dahl", "groq", "deepseek", "ollama"]`)
 - **`compress_tokens`**: (Default `false`) Enables RTK Smart Prompt Compression to strip redundant whitespace, duplicate logs, and deep stack frames, reducing input tokens by 20%-40%
+- **`stream`**: (Default `false`) Enables SSE streaming mode with live token telemetry (Time-To-First-Token, tokens/sec velocity, and token counts)
+- **`preset`**: System persona preset key (e.g., `security-auditor`, `systems-architect`)
 
 ### 2. `llm_list_models`
 Discover available models by calling `GET /v1/models` on any endpoint.
@@ -104,6 +106,12 @@ agy-llm models dahl
 
 # Add a new custom endpoint
 agy-llm add my_proxy https://my-custom-proxy.com/v1 my_secret_token custom-model
+
+# Live real-time token streaming with TTFT and tokens/sec telemetry
+agy-llm ask --stream "Explain SQLite WAL mode"
+
+# Stream with an expert persona
+agy-llm ask --stream --preset security-auditor "Audit this authentication flow"
 
 # Test a prompt
 agy-llm ask "Write a fast binary search in Rust"

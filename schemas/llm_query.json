@@ -46,6 +46,10 @@
         "description": "The provider alias to use from vault: \"dahl\", \"openrouter\", \"deepseek\", \"groq\", \"ollama\", \"lmstudio\", \"freellmapi\", \"9router\", \"omniroute\", \"cerebras\", or custom name. Defaults to active provider.",
         "type": "string"
       },
+      "stream": {
+        "description": "Enable SSE streaming mode with live token telemetry (Time-To-First-Token and tokens/sec velocity calculation). Default is false.",
+        "type": "boolean"
+      },
       "system_prompt": {
         "description": "Optional system instructions or role specification.",
         "type": "string"

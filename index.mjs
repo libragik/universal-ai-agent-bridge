@@ -65,6 +65,10 @@ const TOOLS = [
           type: 'boolean',
           description: 'Enable RTK Smart Prompt Compression to strip redundant whitespace, duplicate logs, and deep library stack traces, saving 20%-40% on input tokens. Default is false.'
         },
+        stream: {
+          type: 'boolean',
+          description: 'Enable SSE streaming mode with live token telemetry (Time-To-First-Token and tokens/sec velocity calculation). Default is false.'
+        },
         preset: {
           type: 'string',
           description: "Name of system persona or prompt preset to apply (e.g. 'security-auditor', 'systems-architect', 'code-simplifier', 'quant-trader', 'fullstack-reviewer', 'explain-like-pro', or custom preset name). Automatically injects specialized system prompt and optimal temperature."
@@ -532,6 +536,58 @@ async function handleToolCall(name, args) {
 
         for (const modelAttempt of modelsToTry) {
           try {
+            if (args.stream) {
+              const streamRes = await LLMClient.chatCompletionStream({
+                baseUrl: resolved.base_url,
+                apiKey: resolved.api_key,
+                model: modelAttempt,
+                messages,
+                temperature: args.temperature ?? 0.7,
+                maxTokens: args.max_tokens ?? null,
+                customHeaders: resolved.headers || {}
+              });
+
+              ledger.record({
+                provider: resolved.key || resolved.name,
+                model: streamRes.model,
+                promptTokens: streamRes.usage?.prompt_tokens || 0,
+                completionTokens: streamRes.usage?.completion_tokens || streamRes.tokens_generated,
+                totalTokens: streamRes.usage?.total_tokens || streamRes.tokens_generated,
+                latencyMs: streamRes.latency_ms,
+                tool: 'llm_query_stream'
+              });
+
+              return {
+                provider_used: resolved.name || resolved.key,
+                base_url: resolved.base_url,
+                model: streamRes.model,
+                stream: true,
+                latency: `${streamRes.latency_ms}ms`,
+                ttft: `${streamRes.ttft_ms}ms`,
+                tokens_per_sec: streamRes.tokens_per_sec,
+                tokens_generated: streamRes.tokens_generated,
+                reasoning: streamRes.reasoning || null,
+                content: streamRes.content,
+                usage: streamRes.usage,
+                streaming_telemetry: {
+                  ttft_ms: streamRes.ttft_ms,
+                  tokens_per_sec: streamRes.tokens_per_sec,
+                  tokens_generated: streamRes.tokens_generated,
+                  latency_ms: streamRes.latency_ms
+                },
+                fallback_occurred: fallbackHistory.length > 0,
+                ...(fallbackHistory.length > 0 ? { fallback_history: fallbackHistory } : {}),
+                ...(compressionStats && compressionStats.saved_tokens > 0 ? {
+                  compression: {
+                    tokens_saved: compressionStats.saved_tokens,
+                    savings: compressionStats.savings_percent,
+                    original_tokens_est: compressionStats.original_tokens,
+                    compressed_tokens_est: compressionStats.compressed_tokens
+                  }
+                } : {})
+              };
+            }
+
             const result = await LLMClient.chatCompletion({
               baseUrl: resolved.base_url,
               apiKey: resolved.api_key,
