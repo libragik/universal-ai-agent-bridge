@@ -55,16 +55,17 @@ Google Antigravity Desktop operates as an agent-first workspace without legacy e
 3. **Smart Prompt Compression (RTK Token-Saver)**: Heuristic compression engine that deduplicates repeated log polling lines, truncates deep library stack frames (e.g. node_modules chains), and normalizes whitespace while strictly preserving code indentation and semantics. Slashes input token consumption by 20% to 50%.
 4. **Multi-Model Consensus & Council Deliberation (`llm_council`)**: Queries multiple specialized models simultaneously (e.g., DeepSeek for mathematical logic, Claude/MiniMax for instruction following, Ollama for local verification) and dispatches all perspectives to a Chief Justice / Synthesizer model that cross-examines the candidate answers, catches edge bugs, and synthesizes the single definitive consensus verdict.
 5. **Local Cost & Token Usage Ledger (`ledger.mjs`, `llm_get_analytics`, `agy-llm ledger`)**: Persistent local transaction accounting that logs input/output tokens across every query and calculates real-time USD expenditures using built-in rate cards (Dahl, DeepSeek, Groq, OpenRouter, and 100% free offline Ollama/LM Studio).
-6. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
-7. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
-8. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
-9. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
-10. **Multi-Modal Support**:
+6. **Dynamic System Persona & Prompt Preset Vault (`presets.mjs`, `llm_presets`, `agy-llm preset`)**: Instant cognitive lens switching with built-in battle-tested engineering personas (`security-auditor`, `systems-architect`, `code-simplifier`, `quant-trader`, `fullstack-reviewer`, `explain-like-pro`) or user-defined custom domain presets.
+7. **Zero-Dependency Core**: Pure Node.js ESM runtime using native `fetch` and high-speed stdio streams. Boots in ~15ms with zero npm installation overhead.
+8. **Multi-Provider Vault**: Store any number of named provider profiles with custom base URLs, tokens, default models, and custom headers.
+9. **DeepSeek-R1 / MiniMax Reasoning Extraction**: Automatically parses `<think>` tags and `reasoning_content` properties so reasoning models never break schemas.
+10. **Ad-Hoc Endpoint Overrides**: Query any temporary `/v1` endpoint on the fly simply by passing `endpoint_url` and `api_key` in natural language.
+11. **Multi-Modal Support**:
    - Text completions via `/v1/chat/completions`
    - Image generation via `/v1/images/generations` (FLUX.1, DALL-E, SD3)
    - Video generation via `/v1/videos/generations` (LTX-Video, Hailuo, Wan2.1)
-11. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
-12. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
+12. **Cross-Model Comparison & Benchmarking**: Parallel query runner (`llm_compare`) to benchmark code solutions side-by-side across multiple models.
+13. **1-Click Portable Installers**: Seamless setup scripts for Windows, macOS, and Linux to clone and use on any PC.
 
 ---
 
@@ -164,11 +165,15 @@ Multi-Model Consensus deliberation. Queries multiple models/providers in paralle
 ### 11. `llm_get_analytics`
 Query real-time token counts and estimated USD costs from the local ledger. Breaks down usage per provider and model with recent transaction logs.
 
+### 12. `llm_presets`
+Inspect, list, and create system personas and prompt presets (`security-auditor`, `systems-architect`, `code-simplifier`, `quant-trader`, `fullstack-reviewer`, `explain-like-pro`).
+
 ---
 
 ## Example Antigravity Chat Prompts
 
 You can speak naturally to Antigravity:
+- *"Use the security-auditor preset to review my authentication middleware."*
 - *"Show me my token usage and estimated LLM costs."*
 - *"Convene an AI council to debate whether we should use Redis or PostgreSQL for background jobs."*
 - *"Use Dahl to check if there are edge cases in this sorting function."*
@@ -194,7 +199,8 @@ Usage:
   agy-llm compress <text>                Compress prompt text and preview token savings
   agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
   agy-llm ledger [clear]                 View token consumption & estimated USD costs
-  agy-llm ask [--compress] <prompt>      Quick test query using active provider
+  agy-llm preset [list|show|add|del]     Manage expert personas & prompt presets
+  agy-llm ask [--preset p] <prompt>      Quick test query using active provider & persona
   agy-llm remove <provider_key>          Remove a provider from vault
 ```
 

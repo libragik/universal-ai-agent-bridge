@@ -6,10 +6,12 @@ import { LocalScanner } from './scanner.mjs';
 import { PromptCompressor } from './compressor.mjs';
 import { CouncilEngine } from './council.mjs';
 import { TokenLedger } from './ledger.mjs';
+import { PresetVault } from './presets.mjs';
 
 const vault = new ProviderVault();
 const ledger = new TokenLedger();
-const councilEngine = new CouncilEngine(vault, ledger);
+const presetVault = new PresetVault();
+const councilEngine = new CouncilEngine(vault, ledger, presetVault);
 
 const TOOLS = [
   {
@@ -62,6 +64,10 @@ const TOOLS = [
         compress_tokens: {
           type: 'boolean',
           description: 'Enable RTK Smart Prompt Compression to strip redundant whitespace, duplicate logs, and deep library stack traces, saving 20%-40% on input tokens. Default is false.'
+        },
+        preset: {
+          type: 'string',
+          description: "Name of system persona or prompt preset to apply (e.g. 'security-auditor', 'systems-architect', 'code-simplifier', 'quant-trader', 'fullstack-reviewer', 'explain-like-pro', or custom preset name). Automatically injects specialized system prompt and optimal temperature."
         }
       },
       required: ['prompt']
@@ -365,12 +371,68 @@ const TOOLS = [
         }
       }
     }
+  },
+  {
+    name: 'llm_presets',
+    description: "Manage and inspect expert System Personas and Prompt Presets (e.g. 'security-auditor', 'systems-architect', 'code-simplifier', 'quant-trader', 'fullstack-reviewer', 'explain-like-pro'). List available personas, view system prompts, or save custom domain presets to the vault.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'get', 'create', 'update', 'delete'],
+          description: "Action to perform on preset vault: 'list' (default), 'get', 'create', 'update', 'delete'."
+        },
+        name: {
+          type: 'string',
+          description: "Preset name/key (e.g. 'security-auditor', 'systems-architect', 'my-custom-preset')."
+        },
+        title: {
+          type: 'string',
+          description: 'Display title for the preset.'
+        },
+        description: {
+          type: 'string',
+          description: 'Short explanation of the persona or domain specialty.'
+        },
+        system_prompt: {
+          type: 'string',
+          description: 'The system prompt defining the persona expertise and guidelines (required for create/update).'
+        },
+        temperature: {
+          type: 'number',
+          description: 'Recommended sampling temperature (0.0 to 1.0).'
+        },
+        default_model: {
+          type: 'string',
+          description: 'Optional model to bind to this preset.'
+        }
+      }
+    }
   }
 ];
 
 async function handleToolCall(name, args) {
   switch (name) {
     case 'llm_query': {
+      if (args.preset) {
+        const found = presetVault.getPreset(args.preset);
+        if (!found) {
+          throw new Error(`Preset "${args.preset}" not found. Available presets: ${presetVault.listPresets().map(p => p.name).join(', ')}`);
+        }
+        if (!args.system_prompt) {
+          args.system_prompt = found.system_prompt;
+        } else {
+          args.system_prompt = `${found.system_prompt}\n\nAdditional Instructions:\n${args.system_prompt}`;
+        }
+        if (args.temperature === undefined && found.temperature !== undefined) {
+          args.temperature = found.temperature;
+        }
+        if (!args.model && found.default_model) {
+          args.model = found.default_model;
+        }
+      }
+
       let messages = [];
       if (args.system_prompt) {
         messages.push({ role: 'system', content: args.system_prompt });
@@ -824,6 +886,50 @@ async function handleToolCall(name, args) {
         provider: args.provider,
         model: args.model
       });
+    }
+
+    case 'llm_presets': {
+      const action = args.action || 'list';
+      if (action === 'list') {
+        const list = presetVault.listPresets();
+        return {
+          presets: list,
+          count: list.length
+        };
+      }
+
+      if (action === 'get') {
+        if (!args.name) throw new Error('Preset "name" is required for get action.');
+        const p = presetVault.getPreset(args.name);
+        if (!p) throw new Error(`Preset "${args.name}" not found.`);
+        return { preset: p };
+      }
+
+      if (action === 'create' || action === 'update') {
+        if (!args.name) throw new Error('Preset "name" is required.');
+        if (!args.system_prompt) throw new Error('"system_prompt" is required.');
+        const saved = presetVault.setPreset(args.name, {
+          title: args.title,
+          description: args.description,
+          system_prompt: args.system_prompt,
+          temperature: args.temperature,
+          default_model: args.default_model
+        });
+        return {
+          message: `Preset "${args.name}" saved successfully.`,
+          preset: saved
+        };
+      }
+
+      if (action === 'delete') {
+        if (!args.name) throw new Error('Preset "name" is required.');
+        presetVault.deletePreset(args.name);
+        return {
+          message: `Preset "${args.name}" deleted successfully.`
+        };
+      }
+
+      throw new Error(`Unknown action "${action}"`);
     }
 
     default:

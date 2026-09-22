@@ -5,9 +5,11 @@ import { LocalScanner } from './scanner.mjs';
 import { PromptCompressor } from './compressor.mjs';
 import { CouncilEngine } from './council.mjs';
 import { TokenLedger } from './ledger.mjs';
+import { PresetVault } from './presets.mjs';
 
 const vault = new ProviderVault();
 const ledger = new TokenLedger();
+const presetVault = new PresetVault();
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -26,7 +28,8 @@ Usage:
   agy-llm compress <text>                Compress prompt text and preview token savings
   agy-llm council [--members p1:m1,p2]   Multi-model consensus deliberation & verdict
   agy-llm ledger [clear]                 View token consumption & estimated USD costs
-  agy-llm ask [--compress] <prompt>      Quick test query using active provider
+  agy-llm preset [list|show|add|del]     Manage expert personas & prompt presets
+  agy-llm ask [--preset p] <prompt>      Quick test query using active provider & persona
   agy-llm remove <provider_key>          Remove a provider from vault
 
 Examples:
@@ -124,11 +127,21 @@ async function run() {
 
       case 'ask': {
         let shouldCompress = false;
+        let presetName = null;
         let promptArgs = args.slice(1);
-        if (promptArgs[0] === '--compress') {
-          shouldCompress = true;
-          promptArgs = promptArgs.slice(1);
+
+        for (let i = 0; i < promptArgs.length; i++) {
+          if (promptArgs[i] === '--compress') {
+            shouldCompress = true;
+            promptArgs.splice(i, 1);
+            i--;
+          } else if (promptArgs[i] === '--preset' && promptArgs[i + 1]) {
+            presetName = promptArgs[i + 1];
+            promptArgs.splice(i, 2);
+            i--;
+          }
         }
+
         let prompt = promptArgs.join(' ');
         if (!prompt) return console.error('Please provide a prompt to ask.');
         
@@ -140,13 +153,35 @@ async function run() {
           console.log(`[RTK Token-Saver]: Compressed prompt from ~${comp.original_tokens} to ~${comp.compressed_tokens} tokens (Saved ${comp.savings_percent}).`);
         }
 
+        let systemPrompt = null;
+        let temperature = 0.7;
+        let targetModel = null;
+
+        if (presetName) {
+          const p = presetVault.getPreset(presetName);
+          if (!p) {
+            return console.error(`Preset "${presetName}" not found. Run "agy-llm preset list" to view presets.`);
+          }
+          systemPrompt = p.system_prompt;
+          if (p.temperature !== undefined) temperature = p.temperature;
+          if (p.default_model) targetModel = p.default_model;
+          console.log(`[Persona Active]: ${p.title || p.name} (temp: ${temperature})`);
+        }
+
         const resolved = vault.getActiveProvider();
-        console.log(`Querying ${resolved.name} [${resolved.default_model}]...`);
+        const modelToUse = targetModel || resolved.default_model;
+        console.log(`Querying ${resolved.name} [${modelToUse}]...`);
+
+        const messages = [];
+        if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+        messages.push({ role: 'user', content: prompt });
+
         const res = await LLMClient.chatCompletion({
           baseUrl: resolved.base_url,
           apiKey: resolved.api_key,
-          model: resolved.default_model,
-          messages: [{ role: 'user', content: prompt }]
+          model: modelToUse,
+          messages,
+          temperature
         });
         console.log(`\nResponse (${res.latency_ms}ms):\n`);
         if (res.reasoning) {
@@ -156,7 +191,7 @@ async function run() {
 
         ledger.record({
           provider: resolved.key,
-          model: resolved.default_model,
+          model: modelToUse,
           promptTokens: res.usage?.prompt_tokens || 0,
           completionTokens: res.usage?.completion_tokens || 0,
           totalTokens: res.usage?.total_tokens || 0,
@@ -334,6 +369,83 @@ async function run() {
           }
         }
         console.log('');
+        break;
+      }
+
+      case 'preset': {
+        const sub = args[1] || 'list';
+
+        if (sub === 'list') {
+          const list = presetVault.listPresets();
+          console.log('\n--- 🧠 Antigravity System Personas & Prompt Presets ---');
+          for (const p of list) {
+            const tag = p.is_builtin ? '[BUILT-IN]' : '[CUSTOM]';
+            console.log(`\n• ${p.name.padEnd(20)} ${tag} (temp: ${p.temperature})`);
+            console.log(`  Title: ${p.title}`);
+            console.log(`  Desc:  ${p.description}`);
+          }
+          console.log(`\nUsage: agy-llm ask --preset <name> "<prompt>"`);
+          console.log(`       agy-llm preset show <name>`);
+          console.log(`       agy-llm preset add <name> --prompt "..." [--temp 0.3]\n`);
+          break;
+        }
+
+        if (sub === 'show') {
+          const name = args[2];
+          if (!name) return console.error('Usage: agy-llm preset show <name>');
+          const p = presetVault.getPreset(name);
+          if (!p) return console.error(`Preset "${name}" not found.`);
+          console.log(`\n======================================================`);
+          console.log(`🧠 PRESET: ${p.name} [${p.is_builtin ? 'BUILT-IN' : 'CUSTOM'}]`);
+          console.log(`======================================================`);
+          console.log(`Title:       ${p.title}`);
+          console.log(`Temperature: ${p.temperature ?? 0.7}`);
+          console.log(`Description: ${p.description}`);
+          console.log(`\n--- System Prompt ---\n${p.system_prompt}\n`);
+          break;
+        }
+
+        if (sub === 'add') {
+          const name = args[2];
+          if (!name) return console.error('Usage: agy-llm preset add <name> --prompt "..." [--temp 0.3]');
+          let prompt = null;
+          let temp = 0.7;
+          let desc = 'Custom preset';
+
+          for (let i = 3; i < args.length; i++) {
+            if (args[i] === '--prompt' && args[i + 1]) {
+              prompt = args[i + 1];
+              i++;
+            } else if (args[i] === '--temp' && args[i + 1]) {
+              temp = parseFloat(args[i + 1]);
+              i++;
+            } else if (args[i] === '--desc' && args[i + 1]) {
+              desc = args[i + 1];
+              i++;
+            }
+          }
+
+          if (!prompt) return console.error('Error: --prompt "<system_prompt>" is required.');
+
+          presetVault.setPreset(name, {
+            title: name,
+            description: desc,
+            system_prompt: prompt,
+            temperature: temp
+          });
+          console.log(`✔ Custom preset "${name}" saved to vault.`);
+          break;
+        }
+
+        if (sub === 'delete' || sub === 'del' || sub === 'remove') {
+          const name = args[2];
+          if (!name) return console.error('Usage: agy-llm preset delete <name>');
+          presetVault.deletePreset(name);
+          console.log(`✔ Preset "${name}" deleted.`);
+          break;
+        }
+
+        console.error(`Unknown preset command "${sub}". Available: list, show, add, delete`);
         break;
       }
 

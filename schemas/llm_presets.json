@@ -1,0 +1,38 @@
+{
+  "name": "llm_presets",
+  "description": "Manage and inspect expert System Personas and Prompt Presets (e.g. 'security-auditor', 'systems-architect', 'code-simplifier', 'quant-trader', 'fullstack-reviewer', 'explain-like-pro'). List available personas, view system prompts, or save custom domain presets to the vault.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["list", "get", "create", "update", "delete"],
+        "description": "Action to perform on preset vault: 'list' (default), 'get', 'create', 'update', 'delete'."
+      },
+      "name": {
+        "type": "string",
+        "description": "Preset name/key (e.g. 'security-auditor', 'systems-architect', 'my-custom-preset')."
+      },
+      "title": {
+        "type": "string",
+        "description": "Display title for the preset."
+      },
+      "description": {
+        "type": "string",
+        "description": "Short explanation of the persona or domain specialty."
+      },
+      "system_prompt": {
+        "type": "string",
+        "description": "The system prompt defining the persona's expertise and guidelines (required for create/update)."
+      },
+      "temperature": {
+        "type": "number",
+        "description": "Recommended sampling temperature (0.0 to 1.0)."
+      },
+      "default_model": {
+        "type": "string",
+        "description": "Optional model to bind to this preset."
+      }
+    }
+  }
+}

@@ -6,9 +6,10 @@
 import { LLMClient } from './client.mjs';
 
 export class CouncilEngine {
-  constructor(vault, ledger = null) {
+  constructor(vault, ledger = null, presetVault = null) {
     this.vault = vault;
     this.ledger = ledger;
+    this.presetVault = presetVault;
   }
 
   /**
@@ -72,6 +73,15 @@ export class CouncilEngine {
           model: m.model
         });
         const modelName = m.model || resolved.default_model;
+        let role = m.role_description;
+        let memberSystemPrompt = null;
+        if (m.preset && this.presetVault) {
+          const p = this.presetVault.getPreset(m.preset);
+          if (p) {
+            role = role || p.title || p.name;
+            memberSystemPrompt = p.system_prompt;
+          }
+        }
         return {
           id: `member_${idx + 1}`,
           providerKey: resolved.key,
@@ -80,7 +90,8 @@ export class CouncilEngine {
           apiKey: resolved.api_key,
           model: modelName,
           customHeaders: resolved.headers || {},
-          roleDescription: m.role_description || 'Specialist Advisor'
+          roleDescription: role || 'Specialist Advisor',
+          systemPrompt: memberSystemPrompt
         };
       });
     }
@@ -167,8 +178,9 @@ export class CouncilEngine {
     const memberPromises = resolvedMembers.map(async (m) => {
       const mStart = Date.now();
       const messages = [];
-      if (system_prompt) {
-        messages.push({ role: 'system', content: system_prompt });
+      const sys = m.systemPrompt || system_prompt;
+      if (sys) {
+        messages.push({ role: 'system', content: sys });
       }
       messages.push({ role: 'user', content: prompt });
 

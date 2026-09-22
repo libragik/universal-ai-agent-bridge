@@ -65,12 +65,25 @@ Query the Local Cost & Token Usage Ledger. Retrieves real-time token consumption
 - **`model`**: Optional filter for a specific model
 - **`limit`**: Number of recent transactions to view (default 20)
 
+### 10. `llm_presets`
+Manage and apply expert System Personas and Prompt Presets (e.g. `security-auditor`, `systems-architect`, `code-simplifier`, `quant-trader`, `fullstack-reviewer`, `explain-like-pro`).
+- **`action`**: `"list"` (default), `"get"`, `"create"`, `"update"`, `"delete"`
+- **`name`**: Preset key (e.g. `"security-auditor"`, `"custom-preset"`)
+- In `llm_query` and `llm_council`: Pass `preset: "security-auditor"` to automatically inject specialized system instructions and calibrated temperatures without manually copying prompts.
+
 ---
 
 ## Terminal CLI Management: `agy-llm`
 
 You can also run commands directly from the Antigravity integrated terminal or Windows PowerShell:
 ```bash
+# Manage and list expert system personas
+agy-llm preset list
+agy-llm preset show security-auditor
+
+# Query using an expert persona
+agy-llm ask --preset security-auditor "Audit this authentication endpoint"
+
 # View token expenditure and cost analytics
 agy-llm ledger
 
