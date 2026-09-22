@@ -1,7 +1,7 @@
 # Universal LLM Bridge: Comprehensive Project & Conversation Record
 
 **Workspace**: `H:\Antigravity Workspaces\universal llm bridge`  
-**Git Remote**: `https://github.com/libragik/universal-llm-bridge.git` (branch: `main`)  
+**Git Remote**: `https://github.com/libragik/universal-ai-agent-bridge.git` (branch: `main`)  
 **Archived On**: September 22, 2026  
 **Conversation ID**: `51067fd1-5a7f-4edd-880c-1e272764db6e`  
 

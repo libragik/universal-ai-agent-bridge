@@ -10,12 +10,12 @@ AI agents through a unified, flexible bridge.
 </p>
 
 <p align="center">
-  <a href="https://github.com/libragik/universal-llm-bridge/stargazers"><img src="https://img.shields.io/github/stars/libragik/universal-llm-bridge?style=for-the-badge&logo=github&color=FFD700" alt="GitHub Stars"></a>
-  <a href="https://github.com/libragik/universal-llm-bridge/network/members"><img src="https://img.shields.io/github/forks/libragik/universal-llm-bridge?style=for-the-badge&logo=github&color=blue" alt="GitHub Forks"></a>
+  <a href="https://github.com/libragik/universal-ai-agent-bridge/stargazers"><img src="https://img.shields.io/github/stars/libragik/universal-ai-agent-bridge?style=for-the-badge&logo=github&color=FFD700" alt="GitHub Stars"></a>
+  <a href="https://github.com/libragik/universal-ai-agent-bridge/network/members"><img src="https://img.shields.io/github/forks/libragik/universal-ai-agent-bridge?style=for-the-badge&logo=github&color=blue" alt="GitHub Forks"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-%3E%3D18.0.0-brightgreen.svg?style=for-the-badge&logo=node.js" alt="Node.js"></a>
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP-2024--11--05-blue.svg?style=for-the-badge&logo=anthropic" alt="MCP Spec"></a>
-  <a href="https://github.com/libragik/universal-llm-bridge/pulls"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=for-the-badge" alt="PRs Welcome"></a>
+  <a href="https://github.com/libragik/universal-ai-agent-bridge/pulls"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=for-the-badge" alt="PRs Welcome"></a>
 </p>
 
 <p align="center">

@@ -6,8 +6,8 @@ First off, thank you for considering contributing to UAAB! It's people like you 
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/libragik/universal-llm-bridge.git
-   cd universal-llm-bridge
+   git clone https://github.com/libragik/universal-ai-agent-bridge.git
+   cd universal-ai-agent-bridge
    ```
 
 2. **No npm install needed**:

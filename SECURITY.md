@@ -10,7 +10,7 @@
 
 We take the security of Universal AI Agent Bridge seriously. If you discover a security vulnerability, please do not open a public GitHub issue.
 
-Please contact the maintainers directly or use [GitHub Private Vulnerability Reporting](https://github.com/libragik/universal-llm-bridge/security/advisories/new).
+Please contact the maintainers directly or use [GitHub Private Vulnerability Reporting](https://github.com/libragik/universal-ai-agent-bridge/security/advisories/new).
 
 ## Security Principles of UAAB
 

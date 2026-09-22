@@ -16,12 +16,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/libragik/universal-llm-bridge.git"
+    "url": "https://github.com/libragik/universal-ai-agent-bridge.git"
   },
   "bugs": {
-    "url": "https://github.com/libragik/universal-llm-bridge/issues"
+    "url": "https://github.com/libragik/universal-ai-agent-bridge/issues"
   },
-  "homepage": "https://github.com/libragik/universal-llm-bridge#readme",
+  "homepage": "https://github.com/libragik/universal-ai-agent-bridge#readme",
   "keywords": [
     "mcp",
     "mcp-server",
